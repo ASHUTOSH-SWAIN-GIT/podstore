@@ -40,4 +40,53 @@ enum SessionStatus {
 }
 
 
+model Participation {
+  id         String   @id @default(cuid())
+  userId     String
+  sessionId  String
+  user       User     @relation(fields: [userId], references: [id])
+  session    Session  @relation(fields: [sessionId], references: [id])
+  joinedAt   DateTime @default(now())
+  leftAt     DateTime?
+  role       Role     @default(GUEST)
+}
+
+enum Role {
+  HOST
+  GUEST
+}
+
+
+
+model MediaFile {
+  id             String         @id @default(cuid())
+  sessionId      String
+  participantId  String?
+  type           MediaType      // e.g., AUDIO, VIDEO, SCREEN
+  isFinal        Boolean        @default(false)
+  status         UploadStatus   @default(PENDING)
+  s3Key          String         // e.g., s3://bucket/sessionId/filename.webm
+  url            String?        // Presigned or public
+  duration       Int?           // In seconds
+  uploadedAt     DateTime?
+  session        Session        @relation(fields: [sessionId], references: [id])
+  participant    Participation? @relation(fields: [participantId], references: [id])
+}
+
+enum MediaType {
+  AUDIO
+  VIDEO
+  AUDIO_VIDEO
+  SCREEN
+}
+
+enum UploadStatus {
+  PENDING
+  UPLOADING
+  COMPLETE
+  FAILED
+}
+
+
+
 
