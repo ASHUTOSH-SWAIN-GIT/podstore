@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+  Participations participation[]
+
+  Session Session[] @relation("HostSessions")
+}
+
+model Session {
+  id             String           @id @default(cuid())
+  title          String?
+  hostId         String
+  host           User             @relation("HostSessions", fields: [hostId], references: [id])
+  participants   Participation[]
+  mediaFiles     MediaFile[]
+  startTime      DateTime?
+  endTime        DateTime?
+  status         SessionStatus    @default(SCHEDULED)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+enum SessionStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  PROCESSING
+  COMPLETE
+}
+
+
+
