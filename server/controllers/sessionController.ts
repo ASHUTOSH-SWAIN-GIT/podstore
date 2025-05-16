@@ -88,4 +88,4 @@ export const getAllSessions = async (req: Request, res: Response) => {
       console.error('Error fetching sessions:', error);
       res.status(500).json({ error: 'Failed to fetch sessions' });
     }
-  };
+};
