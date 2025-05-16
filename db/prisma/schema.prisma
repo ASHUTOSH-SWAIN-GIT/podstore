@@ -9,13 +9,14 @@ datasource db {
 }
 
 model User {
-  id       String @id @default(uuid())
-  email    String @unique
-  password String
-  Participations participation[]
-
-  Session Session[] @relation("HostSessions")
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  sessions      Session[] @relation("HostSessions")
+  participations Participation[]
+  createdAt     DateTime @default(now())
 }
+
 
 model Session {
   id             String           @id @default(cuid())
@@ -29,6 +30,7 @@ model Session {
   status         SessionStatus    @default(SCHEDULED)
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
+  processingJob  ProcessingJob[]
 }
 
 enum SessionStatus {
@@ -49,6 +51,7 @@ model Participation {
   joinedAt   DateTime @default(now())
   leftAt     DateTime?
   role       Role     @default(GUEST)
+  mediaFiles MediaFile[]
 }
 
 enum Role {
@@ -86,6 +89,33 @@ enum UploadStatus {
   COMPLETE
   FAILED
 }
+
+
+model ProcessingJob {
+  id          String         @id @default(cuid())
+  sessionId   String
+  type        JobType
+  status      JobStatus      @default(QUEUED)
+  startedAt   DateTime?
+  completedAt DateTime?
+  log         String?
+  session     Session        @relation(fields: [sessionId], references: [id])
+}
+
+enum JobType {
+  MERGE_AUDIO_VIDEO
+  TRANSCRIBE
+  NORMALIZE_AUDIO
+
+}
+
+enum JobStatus {
+  QUEUED
+  IN_PROGRESS
+  SUCCESS
+  FAILED
+}
+
 
 
 
