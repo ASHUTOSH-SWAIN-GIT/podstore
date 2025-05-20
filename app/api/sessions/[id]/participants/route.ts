@@ -28,7 +28,7 @@ export async function GET(
 export async function POST(
   req: Request,
   { params }: { params: { id: string } }
-) {
+) { 1
   const sessionId = params.id
   const body = await req.json()
   const { userId, role } = body
