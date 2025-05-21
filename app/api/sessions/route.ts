@@ -3,11 +3,24 @@ import { prisma } from "@/lib/utils/prisma";
 
 export async function POST(req: NextRequest) {
   try {
-    const { hostId, title } = await req.json();
+    const { hostId, title, id } = await req.json();
 
+    // First, ensure the user exists
+    const user = await prisma.user.upsert({
+      where: { id: hostId },
+      update: {},
+      create: {
+        id: hostId,
+        email: `${hostId}@example.com`, // Temporary email
+        name: hostId, // Using hostId as name
+      },
+    });
+
+    // Then create the session
     const session = await prisma.session.create({
       data: {
-        hostId,
+        id,
+        hostId: user.id,
         title,
       },
     });
@@ -21,8 +34,6 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
-
 
 export async function GET(req: NextRequest) {
   try {
