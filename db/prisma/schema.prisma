@@ -9,28 +9,67 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  name          String?
-  sessions      Session[] @relation("HostSessions")
+  id             String          @id @default(cuid())
+  email          String          @unique
+  createdAt      DateTime        @default(now())
+  name           String?
   participations Participation[]
-  createdAt     DateTime @default(now())
+  sessions       Session[]       @relation("HostSessions")
 }
 
-
 model Session {
-  id             String           @id @default(cuid())
-  title          String?
-  hostId         String
-  host           User             @relation("HostSessions", fields: [hostId], references: [id])
-  participants   Participation[]
-  mediaFiles     MediaFile[]
-  startTime      DateTime?
-  endTime        DateTime?
-  status         SessionStatus    @default(SCHEDULED)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  processingJob  ProcessingJob[]
+  id            String          @id @default(cuid())
+  title         String?
+  hostId        String
+  startTime     DateTime?
+  endTime       DateTime?
+  status        SessionStatus   @default(SCHEDULED)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  mediaFiles    MediaFile[]
+  participants  Participation[]
+  processingJob ProcessingJob[]
+  host          User            @relation("HostSessions", fields: [hostId], references: [id])
+  joinToken     String?         @unique
+}
+
+model Participation {
+  id         String      @id @default(cuid())
+  userId     String
+  name       String
+  sessionId  String
+  joinedAt   DateTime    @default(now())
+  leftAt     DateTime?
+  role       Role        @default(GUEST)
+  mediaFiles MediaFile[]
+  session    Session     @relation(fields: [sessionId], references: [id])
+  user       User        @relation(fields: [userId], references: [id])
+}
+
+model MediaFile {
+  id            String         @id @default(cuid())
+  sessionId     String
+  participantId String?
+  type          MediaType
+  isFinal       Boolean        @default(false)
+  status        UploadStatus   @default(PENDING)
+  s3Key         String
+  url           String?
+  duration      Int?
+  uploadedAt    DateTime?
+  participant   Participation? @relation(fields: [participantId], references: [id])
+  session       Session        @relation(fields: [sessionId], references: [id])
+}
+
+model ProcessingJob {
+  id          String    @id @default(cuid())
+  sessionId   String
+  type        JobType
+  status      JobStatus @default(QUEUED)
+  startedAt   DateTime?
+  completedAt DateTime?
+  log         String?
+  session     Session   @relation(fields: [sessionId], references: [id])
 }
 
 enum SessionStatus {
@@ -41,39 +80,9 @@ enum SessionStatus {
   COMPLETE
 }
 
-
-model Participation {
-  id         String   @id @default(cuid())
-  userId     String
-  sessionId  String
-  user       User     @relation(fields: [userId], references: [id])
-  session    Session  @relation(fields: [sessionId], references: [id])
-  joinedAt   DateTime @default(now())
-  leftAt     DateTime?
-  role       Role     @default(GUEST)
-  mediaFiles MediaFile[]
-}
-
 enum Role {
   HOST
   GUEST
-}
-
-
-
-model MediaFile {
-  id             String         @id @default(cuid())
-  sessionId      String
-  participantId  String?
-  type           MediaType      // e.g., AUDIO, VIDEO, SCREEN
-  isFinal        Boolean        @default(false)
-  status         UploadStatus   @default(PENDING)
-  s3Key          String         // e.g., s3://bucket/sessionId/filename.webm
-  url            String?        // Presigned or public
-  duration       Int?           // In seconds
-  uploadedAt     DateTime?
-  session        Session        @relation(fields: [sessionId], references: [id])
-  participant    Participation? @relation(fields: [participantId], references: [id])
 }
 
 enum MediaType {
@@ -90,23 +99,10 @@ enum UploadStatus {
   FAILED
 }
 
-
-model ProcessingJob {
-  id          String         @id @default(cuid())
-  sessionId   String
-  type        JobType
-  status      JobStatus      @default(QUEUED)
-  startedAt   DateTime?
-  completedAt DateTime?
-  log         String?
-  session     Session        @relation(fields: [sessionId], references: [id])
-}
-
 enum JobType {
   MERGE_AUDIO_VIDEO
   TRANSCRIBE
   NORMALIZE_AUDIO
-
 }
 
 enum JobStatus {
@@ -115,8 +111,3 @@ enum JobStatus {
   SUCCESS
   FAILED
 }
-
-
-
-
-
