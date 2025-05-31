@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Room,
   RemoteParticipant,
@@ -14,6 +14,9 @@ const LiveRoom: React.FC = () => {
   const [title, setTitle] = useState("");
   const [room, setRoom] = useState<Room | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (!room || !isConnected) return;
@@ -65,6 +68,76 @@ const LiveRoom: React.FC = () => {
     };
   }, [room, isConnected]);
 
+  // Upload chunk to backend
+  const uploadChunk = async (blob: Blob) => {
+    if (!sessionId || !userId) {
+      console.warn("Missing sessionId or userId for chunk upload");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", blob, `chunk_${Date.now()}.webm`);
+    formData.append("sessionId", sessionId);
+    formData.append("userId", userId);
+    formData.append("type", "video");
+
+    try {
+      const res = await fetch("/api/upload-chunk", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        console.error("Chunk upload failed", await res.text());
+      } else {
+        console.log("Chunk uploaded successfully");
+      }
+    } catch (err) {
+      console.error("Error uploading chunk:", err);
+    }
+  };
+
+  // Start recording and chunk uploading
+  const startRecording = async (stream: MediaStream) => {
+    if (!stream) return;
+
+    try {
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+      mediaRecorderRef.current = mediaRecorder;
+      recordedChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          // Upload this chunk immediately
+          uploadChunk(event.data);
+        }
+      };
+
+      mediaRecorder.start(10000); // 10 sec chunks
+
+      mediaRecorder.onstop = () => {
+        console.log("MediaRecorder stopped");
+      };
+
+      mediaRecorder.onerror = (event) => {
+        console.error("MediaRecorder error", event);
+      };
+
+      console.log("MediaRecorder started with 10s chunk length");
+    } catch (error) {
+      console.error("Failed to start MediaRecorder:", error);
+    }
+  };
+
+  // Stop recording if room disconnects
+  useEffect(() => {
+    if (!room) return;
+
+    if (!isConnected && mediaRecorderRef.current?.state !== "inactive") {
+      mediaRecorderRef.current?.stop();
+    }
+  }, [isConnected, room]);
+
   const joinRoom = async () => {
     if (!userId.trim() || !sessionId.trim()) {
       return alert("Please enter both User ID and Session ID");
@@ -79,9 +152,10 @@ const LiveRoom: React.FC = () => {
         throw new Error("Failed to fetch sessions");
       }
       const sessions = await existing.json();
-      
+
       // Ensure sessions is an array before using find
-      const sessionExists = Array.isArray(sessions) && sessions.find((s: any) => s.id === sessionId);
+      const sessionExists =
+        Array.isArray(sessions) && sessions.find((s: any) => s.id === sessionId);
 
       // Step 2: Create session if not exists
       if (!sessionExists) {
@@ -119,6 +193,27 @@ const LiveRoom: React.FC = () => {
       await liveRoom.localParticipant.setMicrophoneEnabled(true);
       await liveRoom.localParticipant.setCameraEnabled(true);
 
+      // Start media recorder on local video track's stream
+      const audioTracks = liveRoom.localParticipant.getTrackPublications().filter(
+        (pub) => pub.kind === 'audio'
+      );
+      const videoTracks = liveRoom.localParticipant.getTrackPublications().filter(
+        (pub) => pub.kind === 'video'
+      );
+
+      // Get MediaStream from the local participant tracks
+      const mediaStream = new MediaStream();
+
+      videoTracks.forEach((trackPub: TrackPublication) => {
+        if (trackPub.track) mediaStream.addTrack(trackPub.track.mediaStreamTrack);
+      });
+      audioTracks.forEach((trackPub: TrackPublication) => {
+        if (trackPub.track) mediaStream.addTrack(trackPub.track.mediaStreamTrack);
+      });
+
+      // Start recording local participant's audio+video
+      startRecording(mediaStream);
+
       // Step 5: Add participant to DB
       await fetch(`/api/sessions/${existingSessionId}/participants`, {
         method: "POST",
@@ -134,7 +229,9 @@ const LiveRoom: React.FC = () => {
   return (
     <div style={{ padding: 20 }}>
       {!isConnected ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 320 }}>
+        <div
+          style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 320 }}
+        >
           <input
             type="text"
             placeholder="User ID"
