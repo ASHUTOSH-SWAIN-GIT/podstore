@@ -10,7 +10,7 @@ datasource db {
 
 model User {
   id             String          @id @default(cuid())
-  email          String          @unique
+  email          String?          @unique
   createdAt      DateTime        @default(now())
   name           String?
   participations Participation[]
@@ -26,23 +26,23 @@ model Session {
   status        SessionStatus   @default(SCHEDULED)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+  joinToken     String?         @unique
   mediaFiles    MediaFile[]
   participants  Participation[]
   processingJob ProcessingJob[]
   host          User            @relation("HostSessions", fields: [hostId], references: [id])
-  joinToken     String?         @unique
 }
 
 model Participation {
   id         String      @id @default(cuid())
   userId     String
-  name       String
-  sessionId  String
+  sessionId  String?
   joinedAt   DateTime    @default(now())
   leftAt     DateTime?
   role       Role        @default(GUEST)
+  name       String?
   mediaFiles MediaFile[]
-  session    Session     @relation(fields: [sessionId], references: [id])
+  session    Session?    @relation(fields: [sessionId], references: [id])
   user       User        @relation(fields: [userId], references: [id])
 }
 
