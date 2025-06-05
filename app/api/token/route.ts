@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 
     const token = await at.toJwt();
 
-    return new NextResponse(token);
+    return NextResponse.json({ token });
   } catch (err) {
     console.error(err);
     return new NextResponse('Bad Request', { status: 400 });
