@@ -5,7 +5,8 @@ import { Suspense } from "react";
 import { livekitConfig } from "@/lib/livekit-config";
 import { apiClient } from "@/lib/api-client";
 import { useUrlParams, useDevices, useLiveKit, useAutoJoin } from "@/hooks";
-import { JoinForm, SessionView } from "@/components";
+import {  SessionView } from "@/components";
+import  {JoinForm}  from "@/components/LiveRoom/JoinForm";
 
 function LiveRoomContent() {
   // Form state
