@@ -1,5 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 interface JoinFormProps {
   userId: string;
@@ -36,18 +38,75 @@ export const JoinForm: React.FC<JoinFormProps> = ({
   onVideoDeviceChange,
   onJoinSession
 }) => {
+  const { user, loading: authLoading, signOut } = useAuth();
+  const router = useRouter();
+
+  // Auto-populate userId when user is authenticated
+  React.useEffect(() => {
+    if (user && !userId) {
+      onUserIdChange(user.id);
+    }
+  }, [user, userId, onUserIdChange]);
+
+  const handleSignInClick = () => {
+    // Build auth URL with current session parameters
+    const authUrl = new URL('/auth', window.location.origin);
+    authUrl.searchParams.set('returnTo', window.location.pathname + window.location.search);
+    if (sessionId) {
+      authUrl.searchParams.set('sessionId', sessionId);
+    }
+    if (userId) {
+      authUrl.searchParams.set('userId', userId);
+    }
+    
+    router.push(authUrl.toString());
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen p-6 bg-black">
       <div className="max-w-md w-full bg-white rounded-none shadow-2xl border border-gray-200">
         <div className="p-8">
-          <h1 className="text-3xl font-light text-center mb-8 text-black tracking-wide">
-            Join Session
-          </h1>
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-light text-black tracking-wide">
+              Join Session
+            </h1>
+            {user && (
+              <button
+                onClick={signOut}
+                className="text-xs text-gray-600 hover:text-black transition-colors"
+              >
+                Sign Out
+              </button>
+            )}
+          </div>
 
           {hasUrlParams && (
             <div className="mb-6 p-4 bg-black border border-gray-300">
               <p className="text-white text-sm text-center font-light">
                 {isAutoJoining ? "⚡ Connecting..." : "📋 Auto-filled from invite"}
+              </p>
+            </div>
+          )}
+
+          {/* Authentication Status */}
+          {!user && !authLoading && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200">
+              <p className="text-blue-800 text-sm text-center mb-3">
+                For the best experience, sign in to your account
+              </p>
+              <button
+                onClick={handleSignInClick}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 text-sm font-medium transition-colors duration-200"
+              >
+                Sign In or Create Account
+              </button>
+            </div>
+          )}
+
+          {user && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200">
+              <p className="text-green-800 text-sm text-center">
+                ✓ Signed in as {user.email}
               </p>
             </div>
           )}
@@ -59,10 +118,11 @@ export const JoinForm: React.FC<JoinFormProps> = ({
               </label>
               <input
                 type="text"
-                placeholder="Enter your ID"
+                placeholder={user ? "Auto-filled from account" : "Enter your ID"}
                 value={userId}
                 onChange={(e) => onUserIdChange(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 focus:outline-none focus:border-black transition-colors duration-200"
+                disabled={!!user}
+                className="w-full px-4 py-3 bg-white border border-gray-300 text-black placeholder-gray-400 focus:outline-none focus:border-black transition-colors duration-200 disabled:bg-gray-50 disabled:text-gray-600"
               />
             </div>
 
@@ -138,14 +198,14 @@ export const JoinForm: React.FC<JoinFormProps> = ({
               </button>
             </div>
 
-            <div className="mt-8 text-center">
-              <p className="text-sm text-gray-600">
-                Don't have an account?{" "}
-                <Link href="/signup" className="text-black hover:underline font-medium">
-                  Create one
-                </Link>
-              </p>
-            </div>
+            {/* Guest Access Note */}
+            {!user && (
+              <div className="mt-6 text-center">
+                <p className="text-xs text-gray-500">
+                  Continuing as guest? You can still join the session, but features may be limited.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
