@@ -32,7 +32,7 @@ export default function HeroSection() {
             <Button
               size="lg"
               variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-800 text-lg px-8 py-6 h-auto"
+              className="border-gray-600 text-black cursor-pointer text-lg px-8 py-6 h-auto"
             >
               Watch Demo
             </Button>
