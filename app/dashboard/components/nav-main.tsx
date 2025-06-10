@@ -1,6 +1,8 @@
 "use client"
 
-import type { LucideIcon } from "lucide-react"
+import Link from "next/link"
+import { Video, Mic, UserCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 import {
   SidebarGroup,
@@ -10,30 +12,46 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-export function NavMain({
-  items,
-}: {
-  items: {
-    title: string
-    url: string
-    icon?: LucideIcon
-    isActive?: boolean
-  }[]
-}) {
+export function NavMain() {
+  const router =  useRouter()
+
+  const handleRedirect = () => {
+    router.push(`/dashboard/create-session`)
+  }
+
+
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Navigation</SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) => (
-          <SidebarMenuItem key={item.title}>
-            <SidebarMenuButton tooltip={item.title} asChild isActive={item.isActive}>
-              <a href={item.url}>
-                {item.icon && <item.icon />}
-                <span>{item.title}</span>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        ))}
+        <SidebarMenuItem>
+          <SidebarMenuButton tooltip="Create Session" asChild>
+          <Link href={`/dashboard/create-session`}
+            
+            className="cursor-pointer"
+          >
+              <Video />
+              <span>Create Session</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton tooltip="Recordings" asChild>
+            <Link href="/dashboard/recordings">
+              <Mic />
+              <span>Recordings</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton tooltip="Profile" asChild>
+            <Link href="/dashboard/profile">
+              <UserCircle />
+              <span>Profile</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
       </SidebarMenu>
     </SidebarGroup>
   )

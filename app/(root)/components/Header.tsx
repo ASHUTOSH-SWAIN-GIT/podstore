@@ -165,19 +165,19 @@ export default function Header() {
             </DropdownMenu>
           ) : (
             <>
-              <Button 
-                variant="ghost" 
+          <Button 
+            variant="ghost" 
                 className="text-gray-300 hover:text-white hover:bg-gray-800/50 transition-colors"
-                onClick={handleRedirect}
-              >
-                Sign In
-              </Button>
+            onClick={handleRedirect}
+            >
+            Sign In
+          </Button>
               <Button 
                 className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 transition-all"
                 onClick={handleRedirect}
               >
-                Try Free
-              </Button>
+            Try Free
+          </Button>
             </>
           )}
         </div>

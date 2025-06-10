@@ -1,7 +1,7 @@
 "use client"
 
 import type * as React from "react"
-import { GalleryVerticalEnd, Video, Mic, UserCircle } from "lucide-react"
+import { GalleryVerticalEnd } from "lucide-react"
 
 import { NavMain } from "./nav-main"
 import { NavUser } from "./nav-user"
@@ -10,34 +10,11 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } fr
 
 // This is sample data.
 const data = {
-  user: {
-    name: "John Doe",
-    email: "john@example.com",
-    avatar: "/placeholder.svg?height=32&width=32",
-  },
   teams: [
     {
       name: "Dashboard",
       logo: GalleryVerticalEnd,
       plan: "Enterprise",
-    },
-  ],
-  navMain: [
-    {
-      title: "Create Session",
-      url: "/create-session",
-      icon: Video,
-      isActive: true,
-    },
-    {
-      title: "Recordings",
-      url: "/recordings",
-      icon: Mic,
-    },
-    {
-      title: "Profile",
-      url: "/profile",
-      icon: UserCircle,
     },
   ],
 }
@@ -49,10 +26,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
