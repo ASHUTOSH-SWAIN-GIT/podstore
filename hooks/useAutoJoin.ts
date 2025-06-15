@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 interface UseAutoJoinProps {
   urlSessionId: string | null;
@@ -15,7 +15,7 @@ export const useAutoJoin = ({
   selectedAudio,
   selectedVideo,
   isConnected,
-  onAutoJoin
+  onAutoJoin,
 }: UseAutoJoinProps) => {
   const [autoJoinAttempted, setAutoJoinAttempted] = useState(false);
   const [isAutoJoining, setIsAutoJoining] = useState(false);
@@ -23,17 +23,17 @@ export const useAutoJoin = ({
   useEffect(() => {
     const attemptAutoJoin = async () => {
       if (
-        urlSessionId && 
-        urlUserId && 
-        selectedAudio && 
-        selectedVideo && 
-        !autoJoinAttempted && 
+        urlSessionId &&
+        urlUserId &&
+        selectedAudio &&
+        selectedVideo &&
+        !autoJoinAttempted &&
         !isConnected
       ) {
         console.log("Attempting auto-join...");
         setAutoJoinAttempted(true);
         setIsAutoJoining(true);
-        
+
         try {
           await onAutoJoin();
           console.log("Auto-join successful!");
@@ -48,10 +48,18 @@ export const useAutoJoin = ({
     if (selectedAudio && selectedVideo) {
       attemptAutoJoin();
     }
-  }, [urlSessionId, urlUserId, selectedAudio, selectedVideo, autoJoinAttempted, isConnected, onAutoJoin]);
+  }, [
+    urlSessionId,
+    urlUserId,
+    selectedAudio,
+    selectedVideo,
+    autoJoinAttempted,
+    isConnected,
+    onAutoJoin,
+  ]);
 
   return {
     isAutoJoining,
-    autoJoinAttempted
+    autoJoinAttempted,
   };
-}; 
+};

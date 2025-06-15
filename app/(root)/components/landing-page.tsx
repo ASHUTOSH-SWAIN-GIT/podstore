@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import Header from './Header'
-import HeroSection from './HeroSection'
-import FeaturesSection from './FeaturesSection'
-import TestimonialsSection from './TestimonialsSection'
-import FAQSection from './FAQSection'
-import CTASection from './CTASection'
-import Footer from './Footer'
+import Header from "./Header";
+import HeroSection from "./HeroSection";
+import FeaturesSection from "./FeaturesSection";
+import TestimonialsSection from "./TestimonialsSection";
+import FAQSection from "./FAQSection";
+import CTASection from "./CTASection";
+import Footer from "./Footer";
 
 export default function LandingPage() {
   return (
@@ -19,5 +19,5 @@ export default function LandingPage() {
       <CTASection />
       <Footer />
     </div>
-  )
+  );
 }

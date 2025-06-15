@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/utils/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/utils/prisma";
 
 export async function POST(req: NextRequest) {
   try {
@@ -7,8 +7,8 @@ export async function POST(req: NextRequest) {
 
     if (!id || !email) {
       return NextResponse.json(
-        { error: 'User ID and email are required' },
-        { status: 400 }
+        { error: "User ID and email are required" },
+        { status: 400 },
       );
     }
 
@@ -17,24 +17,20 @@ export async function POST(req: NextRequest) {
       where: { id },
       update: {
         email,
-        name: name || email.split('@')[0],
+        name: name || email.split("@")[0],
         // Add any other fields you want to update
       },
       create: {
         id,
         email,
-        name: name || email.split('@')[0],
+        name: name || email.split("@")[0],
         // Add any default values for new users
       },
     });
 
     return NextResponse.json({ user }, { status: 200 });
-
   } catch (error) {
-    console.error('Failed to sync user:', error);
-    return NextResponse.json(
-      { error: 'Failed to sync user' },
-      { status: 500 }
-    );
+    console.error("Failed to sync user:", error);
+    return NextResponse.json({ error: "Failed to sync user" }, { status: 500 });
   }
-} 
+}

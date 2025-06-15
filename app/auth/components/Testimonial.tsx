@@ -10,8 +10,9 @@ export default function Testimonial() {
           </div>
           <div className="ml-4">
             <p className="text-sm text-gray-300">
-              "Podstore has completely transformed how we record our weekly podcast. The quality is incredible and
-              the collaborative features make remote recording seamless."
+              "Podstore has completely transformed how we record our weekly
+              podcast. The quality is incredible and the collaborative features
+              make remote recording seamless."
             </p>
             <p className="mt-2 text-sm font-medium text-white">Sarah Johnson</p>
             <p className="text-xs text-gray-400">Host of Tech Talk Weekly</p>
@@ -19,5 +20,5 @@ export default function Testimonial() {
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}

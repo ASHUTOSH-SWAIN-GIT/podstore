@@ -1,19 +1,20 @@
-import { Check } from "lucide-react"
+import { Check } from "lucide-react";
 
 const features = [
   {
     title: "High-quality local recording",
-    description: "Record crystal-clear audio and video directly in your browser"
+    description:
+      "Record crystal-clear audio and video directly in your browser",
   },
   {
     title: "Automatic cloud backup",
-    description: "Your recordings are automatically uploaded as you record"
+    description: "Your recordings are automatically uploaded as you record",
   },
   {
     title: "Collaborate with your team",
-    description: "Record with multiple participants from anywhere in the world"
-  }
-]
+    description: "Record with multiple participants from anywhere in the world",
+  },
+];
 
 export default function FeaturesList() {
   return (
@@ -32,5 +33,5 @@ export default function FeaturesList() {
         </div>
       ))}
     </div>
-  )
-} 
+  );
+}

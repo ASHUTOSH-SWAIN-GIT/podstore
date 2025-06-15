@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useSearchParams } from 'next/navigation'
-import AuthFormSection from './AuthFormSection'
-import AuthSidebarSection from './AuthSidebarSection'
+import { useSearchParams } from "next/navigation";
+import AuthFormSection from "./AuthFormSection";
+import AuthSidebarSection from "./AuthSidebarSection";
 
 export default function SignUpPage() {
-  const searchParams = useSearchParams()
-  const error = searchParams.get('error')
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
 
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col md:flex-row">
@@ -18,5 +18,5 @@ export default function SignUpPage() {
       <AuthFormSection />
       <AuthSidebarSection />
     </div>
-  )
+  );
 }

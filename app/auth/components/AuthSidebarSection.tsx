@@ -1,6 +1,6 @@
-import AuthBadge from './AuthBadge'
-import FeaturesList from './FeaturesList'
-import Testimonial from './Testimonial'
+import AuthBadge from "./AuthBadge";
+import FeaturesList from "./FeaturesList";
+import Testimonial from "./Testimonial";
 
 export default function AuthSidebarSection() {
   return (
@@ -11,7 +11,8 @@ export default function AuthSidebarSection() {
         <AuthBadge />
 
         <h3 className="text-2xl font-bold text-white mb-6">
-          Start recording studio-quality content in minutes — no software needed.
+          Start recording studio-quality content in minutes — no software
+          needed.
         </h3>
 
         <FeaturesList />
@@ -22,5 +23,5 @@ export default function AuthSidebarSection() {
       <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
       <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl" />
     </div>
-  )
-} 
+  );
+}

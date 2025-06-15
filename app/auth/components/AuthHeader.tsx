@@ -1,4 +1,4 @@
-import { Headphones } from "lucide-react"
+import { Headphones } from "lucide-react";
 
 export default function AuthHeader() {
   return (
@@ -8,5 +8,5 @@ export default function AuthHeader() {
       </div>
       <span className="text-xl font-bold text-white">Podstore</span>
     </div>
-  )
-} 
+  );
+}

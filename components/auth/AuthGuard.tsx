@@ -1,34 +1,34 @@
-"use client"
+"use client";
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/hooks/useAuth'
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AuthGuardProps {
-  children: React.ReactNode
-  requireAuth?: boolean
-  redirectTo?: string
+  children: React.ReactNode;
+  requireAuth?: boolean;
+  redirectTo?: string;
 }
 
-export default function AuthGuard({ 
-  children, 
-  requireAuth = true, 
-  redirectTo = '/auth' 
+export default function AuthGuard({
+  children,
+  requireAuth = true,
+  redirectTo = "/auth",
 }: AuthGuardProps) {
-  const { user, loading } = useAuth()
-  const router = useRouter()
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     if (!loading) {
       if (requireAuth && !user) {
         // User is not authenticated but auth is required
-        router.push(redirectTo)
+        router.push(redirectTo);
       } else if (!requireAuth && user) {
         // User is authenticated but should not be (e.g., on auth page)
-        router.push('/dashboard')
+        router.push("/dashboard");
       }
     }
-  }, [user, loading, requireAuth, redirectTo, router])
+  }, [user, loading, requireAuth, redirectTo, router]);
 
   // Show loading spinner while checking auth
   if (loading) {
@@ -39,17 +39,17 @@ export default function AuthGuard({
           <span className="text-white">Loading...</span>
         </div>
       </div>
-    )
+    );
   }
 
   // Don't render children if auth requirements aren't met
   if (requireAuth && !user) {
-    return null
+    return null;
   }
 
   if (!requireAuth && user) {
-    return null
+    return null;
   }
 
-  return <>{children}</>
-} 
+  return <>{children}</>;
+}

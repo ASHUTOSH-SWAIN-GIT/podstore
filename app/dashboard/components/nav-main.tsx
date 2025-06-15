@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { Video, Mic, UserCircle } from "lucide-react"
-import { useRouter } from "next/navigation"
+import Link from "next/link";
+import { Video, Mic, UserCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import {
   SidebarGroup,
@@ -10,16 +10,14 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 export function NavMain() {
-  const router =  useRouter()
+  const router = useRouter();
 
   const handleRedirect = () => {
-    router.push(`/dashboard/create-session`)
-  }
-
-
+    router.push(`/dashboard/create-session`);
+  };
 
   return (
     <SidebarGroup>
@@ -27,10 +25,7 @@ export function NavMain() {
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton tooltip="Create Session" asChild>
-          <Link href={`/dashboard/create-session`}
-            
-            className="cursor-pointer"
-          >
+            <Link href={`/dashboard/create-session`} className="cursor-pointer">
               <Video />
               <span>Create Session</span>
             </Link>
@@ -54,5 +49,5 @@ export function NavMain() {
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarGroup>
-  )
+  );
 }

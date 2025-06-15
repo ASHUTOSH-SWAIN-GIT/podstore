@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import { AccessToken } from 'livekit-server-sdk';
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { AccessToken } from "livekit-server-sdk";
 
 const TokenRequestSchema = z.object({
   userId: z.string(),
@@ -17,8 +17,8 @@ export async function POST(req: Request) {
       process.env.LIVEKIT_API_SECRET!,
       {
         identity: userId,
-        ttl: '10m',
-      }
+        ttl: "10m",
+      },
     );
 
     at.addGrant({ roomJoin: true, room: sessionId });
@@ -28,6 +28,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ token });
   } catch (err) {
     console.error(err);
-    return new NextResponse('Bad Request', { status: 400 });
+    return new NextResponse("Bad Request", { status: 400 });
   }
 }

@@ -1,12 +1,18 @@
-"use client"
+"use client";
 
-import type * as React from "react"
-import { GalleryVerticalEnd } from "lucide-react"
+import type * as React from "react";
+import { GalleryVerticalEnd } from "lucide-react";
 
-import { NavMain } from "./nav-main"
-import { NavUser } from "./nav-user"
-import { TeamSwitcher } from "./team-switcher"
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
+import { NavMain } from "./nav-main";
+import { NavUser } from "./nav-user";
+import { TeamSwitcher } from "./team-switcher";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail,
+} from "@/components/ui/sidebar";
 
 // This is sample data.
 const data = {
@@ -17,7 +23,7 @@ const data = {
       plan: "Enterprise",
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -33,5 +39,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }

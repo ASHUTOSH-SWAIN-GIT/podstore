@@ -1,97 +1,97 @@
-'use client'
+"use client";
 
-import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Session {
-  id: string
-  title: string
-  hostId: string
-  status: string
-  createdAt: string
-  joinToken: string
+  id: string;
+  title: string;
+  hostId: string;
+  status: string;
+  createdAt: string;
+  joinToken: string;
   host: {
-    name: string
-    email: string
-  }
+    name: string;
+    email: string;
+  };
 }
 
 export default function JoinPage() {
-  const params = useParams()
-  const router = useRouter()
-  const { user } = useAuth()
-  const token = params.token as string
-  
-  const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [joining, setJoining] = useState(false)
+  const params = useParams();
+  const router = useRouter();
+  const { user } = useAuth();
+  const token = params.token as string;
+
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [joining, setJoining] = useState(false);
 
   // Fetch session by token
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const response = await fetch(`/api/sessions/by-token/${token}`)
-        
+        const response = await fetch(`/api/sessions/by-token/${token}`);
+
         if (!response.ok) {
           if (response.status === 404) {
-            setError('Invalid or expired invite link')
+            setError("Invalid or expired invite link");
           } else {
-            setError('Failed to load session')
+            setError("Failed to load session");
           }
-          return
+          return;
         }
 
-        const sessionData = await response.json()
-        setSession(sessionData)
+        const sessionData = await response.json();
+        setSession(sessionData);
       } catch (err) {
-        setError('Failed to load session')
+        setError("Failed to load session");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
     if (token) {
-      fetchSession()
+      fetchSession();
     }
-  }, [token])
+  }, [token]);
 
   const handleJoin = async () => {
-    if (!session) return
+    if (!session) return;
 
-    setJoining(true)
+    setJoining(true);
     try {
       // If user is not signed in, redirect to auth first
       if (!user) {
-        const authUrl = new URL('/auth', window.location.origin)
-        authUrl.searchParams.set('returnTo', `/join/${token}`)
-        router.push(authUrl.toString())
-        return
+        const authUrl = new URL("/auth", window.location.origin);
+        authUrl.searchParams.set("returnTo", `/join/${token}`);
+        router.push(authUrl.toString());
+        return;
       }
 
       // Join the session
       const response = await fetch(`/api/sessions/${session.id}/participants`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: user.id,
-          role: 'GUEST'
-        })
-      })
+          role: "GUEST",
+        }),
+      });
 
       if (!response.ok) {
-        throw new Error('Failed to join session')
+        throw new Error("Failed to join session");
       }
 
       // Redirect to the session
-      router.push(`/session/${session.id}`)
+      router.push(`/session/${session.id}`);
     } catch (err) {
-      setError('Failed to join session')
+      setError("Failed to join session");
     } finally {
-      setJoining(false)
+      setJoining(false);
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -101,7 +101,7 @@ export default function JoinPage() {
           <p className="text-white">Loading invite...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (error || !session) {
@@ -112,10 +112,10 @@ export default function JoinPage() {
             <div className="text-6xl">❌</div>
             <h1 className="text-2xl font-light text-black">Invalid Invite</h1>
             <p className="text-gray-600">
-              {error || 'This invite link is invalid or has expired.'}
+              {error || "This invite link is invalid or has expired."}
             </p>
             <button
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push("/dashboard")}
               className="w-full bg-black hover:bg-gray-800 text-white py-3 px-4 font-light transition-colors duration-200"
             >
               Go to Dashboard
@@ -123,7 +123,7 @@ export default function JoinPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -132,7 +132,7 @@ export default function JoinPage() {
         <div className="p-8">
           <div className="text-center space-y-6">
             <div className="text-6xl">🎙️</div>
-            
+
             <div>
               <h1 className="text-2xl font-light text-black mb-2">
                 You've been invited!
@@ -149,23 +149,25 @@ export default function JoinPage() {
                 </span>
                 <span className="text-black font-medium">{session.title}</span>
               </div>
-              
+
               <div>
                 <span className="block text-xs text-gray-500 uppercase tracking-wider mb-1">
                   Hosted by
                 </span>
                 <span className="text-black">{session.host.name}</span>
               </div>
-              
+
               <div>
                 <span className="block text-xs text-gray-500 uppercase tracking-wider mb-1">
                   Status
                 </span>
-                <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                  session.status === 'ACTIVE' 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
+                <span
+                  className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                    session.status === "ACTIVE"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-100 text-gray-800"
+                  }`}
+                >
                   {session.status}
                 </span>
               </div>
@@ -190,12 +192,12 @@ export default function JoinPage() {
               disabled={joining}
               className="w-full bg-black hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-4 px-4 font-light transition-colors duration-200 uppercase text-sm tracking-wide"
             >
-              {joining ? 'Joining...' : 'Join Session'}
+              {joining ? "Joining..." : "Join Session"}
             </button>
 
             <div className="text-center">
               <button
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push("/dashboard")}
                 className="text-gray-500 hover:text-black text-sm transition-colors duration-200"
               >
                 Go to Dashboard instead
@@ -205,5 +207,5 @@ export default function JoinPage() {
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}

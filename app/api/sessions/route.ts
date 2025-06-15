@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/utils/prisma"; 
-import {nanoid} from "nanoid"
+import { prisma } from "@/lib/utils/prisma";
+import { nanoid } from "nanoid";
 
 export async function POST(req: NextRequest) {
   try {
     const { hostId, title, id } = await req.json();
 
     if (!hostId || !title || !id) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      );
     }
 
     const user = await prisma.user.upsert({
@@ -15,7 +18,7 @@ export async function POST(req: NextRequest) {
       update: {},
       create: {
         id: hostId,
-        
+
         name: hostId,
       },
     });
@@ -31,20 +34,21 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      session,
-      joinUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/join/${joinToken}`,
-    }, { status: 201 });
-
+    return NextResponse.json(
+      {
+        session,
+        joinUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/join/${joinToken}`,
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Failed to create session:", error);
     return NextResponse.json(
       { error: "Failed to create session" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
 
 export async function GET(req: NextRequest) {
   try {
@@ -82,7 +86,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(sessions, { status: 200 });
   } catch (error) {
     console.error("Error fetching sessions:", error);
-    return NextResponse.json({ error: "Failed to fetch sessions" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch sessions" },
+      { status: 500 },
+    );
   }
 }
-

@@ -1,4 +1,4 @@
-import { Check } from "lucide-react"
+import { Check } from "lucide-react";
 
 export default function AuthBadge() {
   return (
@@ -7,5 +7,5 @@ export default function AuthBadge() {
         <Check className="w-4 h-4 mr-2" /> No credit card required
       </div>
     </div>
-  )
-} 
+  );
+}

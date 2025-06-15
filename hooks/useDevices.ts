@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Room } from 'livekit-client';
+import { useState, useEffect } from "react";
+import { Room } from "livekit-client";
 
 export const useDevices = () => {
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
@@ -13,7 +13,7 @@ export const useDevices = () => {
       try {
         const audio = await Room.getLocalDevices("audioinput");
         const video = await Room.getLocalDevices("videoinput");
-        
+
         setAudioDevices(audio);
         setVideoDevices(video);
         setSelectedAudio(audio[0]?.deviceId || "");
@@ -23,7 +23,7 @@ export const useDevices = () => {
         console.error("Failed to get devices:", error);
       }
     };
-    
+
     getDevices();
   }, []);
 
@@ -34,6 +34,6 @@ export const useDevices = () => {
     selectedVideo,
     devicesLoaded,
     setSelectedAudio,
-    setSelectedVideo
+    setSelectedVideo,
   };
-}; 
+};

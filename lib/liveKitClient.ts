@@ -1,5 +1,5 @@
 // lib/livekitClient.ts
-import { Room } from 'livekit-client';
+import { Room } from "livekit-client";
 
 export async function joinLiveKitRoom(token: string, livekitUrl: string) {
   const room = new Room();
@@ -10,8 +10,8 @@ export async function joinLiveKitRoom(token: string, livekitUrl: string) {
   await room.localParticipant.setCameraEnabled(true);
   await room.localParticipant.setMicrophoneEnabled(true);
 
-  room.on('participantConnected', participant => {
-    console.log('Remote participant connected:', participant.identity);
+  room.on("participantConnected", (participant) => {
+    console.log("Remote participant connected:", participant.identity);
   });
 
   return room;

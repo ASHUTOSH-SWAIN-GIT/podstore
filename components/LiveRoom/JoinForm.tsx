@@ -1,7 +1,7 @@
-import React from 'react';
-import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import React from "react";
+import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 interface JoinFormProps {
   userId: string;
@@ -36,7 +36,7 @@ export const JoinForm: React.FC<JoinFormProps> = ({
   onTitleChange,
   onAudioDeviceChange,
   onVideoDeviceChange,
-  onJoinSession
+  onJoinSession,
 }) => {
   const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
@@ -50,15 +50,18 @@ export const JoinForm: React.FC<JoinFormProps> = ({
 
   const handleSignInClick = () => {
     // Build auth URL with current session parameters
-    const authUrl = new URL('/auth', window.location.origin);
-    authUrl.searchParams.set('returnTo', window.location.pathname + window.location.search);
+    const authUrl = new URL("/auth", window.location.origin);
+    authUrl.searchParams.set(
+      "returnTo",
+      window.location.pathname + window.location.search,
+    );
     if (sessionId) {
-      authUrl.searchParams.set('sessionId', sessionId);
+      authUrl.searchParams.set("sessionId", sessionId);
     }
     if (userId) {
-      authUrl.searchParams.set('userId', userId);
+      authUrl.searchParams.set("userId", userId);
     }
-    
+
     router.push(authUrl.toString());
   };
 
@@ -83,7 +86,9 @@ export const JoinForm: React.FC<JoinFormProps> = ({
           {hasUrlParams && (
             <div className="mb-6 p-4 bg-black border border-gray-300">
               <p className="text-white text-sm text-center font-light">
-                {isAutoJoining ? "⚡ Connecting..." : "📋 Auto-filled from invite"}
+                {isAutoJoining
+                  ? "⚡ Connecting..."
+                  : "📋 Auto-filled from invite"}
               </p>
             </div>
           )}
@@ -118,7 +123,9 @@ export const JoinForm: React.FC<JoinFormProps> = ({
               </label>
               <input
                 type="text"
-                placeholder={user ? "Auto-filled from account" : "Enter your ID"}
+                placeholder={
+                  user ? "Auto-filled from account" : "Enter your ID"
+                }
                 value={userId}
                 onChange={(e) => onUserIdChange(e.target.value)}
                 disabled={!!user}
@@ -169,7 +176,7 @@ export const JoinForm: React.FC<JoinFormProps> = ({
                   ))}
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-2 uppercase tracking-wider">
                   Video Device
@@ -202,7 +209,8 @@ export const JoinForm: React.FC<JoinFormProps> = ({
             {!user && (
               <div className="mt-6 text-center">
                 <p className="text-xs text-gray-500">
-                  Continuing as guest? You can still join the session, but features may be limited.
+                  Continuing as guest? You can still join the session, but
+                  features may be limited.
                 </p>
               </div>
             )}
@@ -211,4 +219,4 @@ export const JoinForm: React.FC<JoinFormProps> = ({
       </div>
     </div>
   );
-}; 
+};

@@ -1,94 +1,99 @@
-'use client'
+"use client";
 
-import { createContext, useContext, useEffect, useState } from 'react'
-import { User, Session } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase/client'
+import { createContext, useContext, useEffect, useState } from "react";
+import { User, Session } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase/client";
 
 interface AuthContextType {
-  user: User | null
-  session: Session | null
-  loading: boolean
-  signOut: () => Promise<void>
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-      setUser(session?.user || null)
-      setLoading(false)
-    }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setSession(session);
+      setUser(session?.user || null);
+      setLoading(false);
+    };
 
-    getInitialSession()
+    getInitialSession();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session)
-        setSession(session)
-        setUser(session?.user || null)
-        setLoading(false)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session);
+      setSession(session);
+      setUser(session?.user || null);
+      setLoading(false);
 
-        // Sync user with your database if needed
-        if (session?.user && event === 'SIGNED_IN') {
-          await syncUserWithDatabase(session.user)
-        }
+      // Sync user with your database if needed
+      if (session?.user && event === "SIGNED_IN") {
+        await syncUserWithDatabase(session.user);
       }
-    )
+    });
 
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => subscription.unsubscribe();
+  }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-  }
+    await supabase.auth.signOut();
+  };
 
   // Sync Supabase user with your Prisma database
   const syncUserWithDatabase = async (user: User) => {
     try {
-      const response = await fetch('/api/auth/sync-user', {
-        method: 'POST',
+      const response = await fetch("/api/auth/sync-user", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           id: user.id,
           email: user.email,
-          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Anonymous',
+          name:
+            user.user_metadata?.full_name ||
+            user.email?.split("@")[0] ||
+            "Anonymous",
           image: user.user_metadata?.avatar_url,
         }),
-      })
+      });
 
       if (!response.ok) {
-        console.error('Failed to sync user with database')
+        console.error("Failed to sync user with database");
       }
     } catch (error) {
-      console.error('Error syncing user:', error)
+      console.error("Error syncing user:", error);
     }
-  }
+  };
 
   const value = {
     user,
     session,
     loading,
     signOut,
-  }
+  };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context
-} 
+  return context;
+}

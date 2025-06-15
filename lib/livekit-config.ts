@@ -1,18 +1,18 @@
 export const livekitConfig = {
-  serverUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL || '',
-  
+  serverUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL || "",
+
   roomOptions: {
     adaptiveStream: true,
     dynacast: true,
     videoCaptureDefaults: {
       resolution: { width: 1280, height: 720 },
-      facingMode: 'user' as const, // Front-facing camera for video calls
+      facingMode: "user" as const, // Front-facing camera for video calls
     },
   },
 
   videoOptions: {
     resolution: { width: 1280, height: 720 },
-    facingMode: 'user' as const,
+    facingMode: "user" as const,
     frameRate: 30,
   },
 
@@ -20,5 +20,5 @@ export const livekitConfig = {
     echoCancellation: true,
     noiseSuppression: true,
     autoGainControl: true,
-  }
-}; 
+  },
+};

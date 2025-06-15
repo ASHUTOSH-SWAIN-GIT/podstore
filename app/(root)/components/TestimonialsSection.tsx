@@ -1,13 +1,22 @@
-import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card"
-import { Star } from "lucide-react"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+} from "@/components/ui/card";
+import { Star } from "lucide-react";
 
 export default function TestimonialsSection() {
   return (
     <section id="testimonials" className="py-20">
       <div className="container mx-auto px-4 lg:px-6">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Trusted by creators worldwide</h2>
-          <p className="text-xl text-gray-300">See what podcasters and content creators are saying about Podstore</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Trusted by creators worldwide
+          </h2>
+          <p className="text-xl text-gray-300">
+            See what podcasters and content creators are saying about Podstore
+          </p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -15,12 +24,16 @@ export default function TestimonialsSection() {
             <CardHeader>
               <div className="flex items-center space-x-1 mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  <Star
+                    key={i}
+                    className="w-4 h-4 fill-yellow-400 text-yellow-400"
+                  />
                 ))}
               </div>
               <CardDescription className="text-gray-300 text-base">
-                "Podstore has completely transformed how we record our weekly podcast. The quality is incredible and
-                the collaborative features make remote recording seamless."
+                "Podstore has completely transformed how we record our weekly
+                podcast. The quality is incredible and the collaborative
+                features make remote recording seamless."
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -30,7 +43,9 @@ export default function TestimonialsSection() {
                 </div>
                 <div>
                   <p className="font-semibold text-white">Sarah Johnson</p>
-                  <p className="text-sm text-gray-400">Host of Tech Talk Weekly</p>
+                  <p className="text-sm text-gray-400">
+                    Host of Tech Talk Weekly
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -40,12 +55,16 @@ export default function TestimonialsSection() {
             <CardHeader>
               <div className="flex items-center space-x-1 mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  <Star
+                    key={i}
+                    className="w-4 h-4 fill-yellow-400 text-yellow-400"
+                  />
                 ))}
               </div>
               <CardDescription className="text-gray-300 text-base">
-                "As a content creator, I need tools I can rely on. Podstore's automatic cloud backup saved me when my
-                computer crashed mid-recording. Game changer!"
+                "As a content creator, I need tools I can rely on. Podstore's
+                automatic cloud backup saved me when my computer crashed
+                mid-recording. Game changer!"
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -65,12 +84,16 @@ export default function TestimonialsSection() {
             <CardHeader>
               <div className="flex items-center space-x-1 mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  <Star
+                    key={i}
+                    className="w-4 h-4 fill-yellow-400 text-yellow-400"
+                  />
                 ))}
               </div>
               <CardDescription className="text-gray-300 text-base">
-                "The ease of use is incredible. We went from struggling with complex recording setups to
-                professional-quality episodes in minutes. Our team loves it."
+                "The ease of use is incredible. We went from struggling with
+                complex recording setups to professional-quality episodes in
+                minutes. Our team loves it."
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -88,5 +111,5 @@ export default function TestimonialsSection() {
         </div>
       </div>
     </section>
-  )
-} 
+  );
+}

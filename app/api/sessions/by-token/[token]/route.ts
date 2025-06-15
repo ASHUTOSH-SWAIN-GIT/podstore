@@ -3,7 +3,7 @@ import { prisma } from "@/lib/utils/prisma";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
+  { params }: { params: Promise<{ token: string }> },
 ) {
   const { token } = await params;
 
@@ -37,7 +37,7 @@ export async function GET(
     if (!session) {
       return NextResponse.json(
         { message: "Session not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -46,7 +46,7 @@ export async function GET(
     console.error("Failed to fetch session by token:", error);
     return NextResponse.json(
       { error: "Failed to fetch session" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

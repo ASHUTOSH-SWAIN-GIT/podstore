@@ -1,20 +1,13 @@
-import React from 'react'
-import { Button } from "@/components/ui/button"
-import { 
-  Mic, 
-  MicOff, 
-  Video, 
-  VideoOff, 
-  Settings, 
-  PhoneOff 
-} from 'lucide-react'
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Mic, MicOff, Video, VideoOff, Settings, PhoneOff } from "lucide-react";
 
 interface SessionControlsProps {
-  isMuted: boolean
-  isVideoOff: boolean
-  toggleMute: () => void
-  toggleVideo: () => void
-  handleEndSession: () => void
+  isMuted: boolean;
+  isVideoOff: boolean;
+  toggleMute: () => void;
+  toggleVideo: () => void;
+  handleEndSession: () => void;
 }
 
 export const SessionControls: React.FC<SessionControlsProps> = ({
@@ -22,7 +15,7 @@ export const SessionControls: React.FC<SessionControlsProps> = ({
   isVideoOff,
   toggleMute,
   toggleVideo,
-  handleEndSession
+  handleEndSession,
 }) => {
   return (
     <div className="border-t border-gray-800 p-6">
@@ -32,25 +25,33 @@ export const SessionControls: React.FC<SessionControlsProps> = ({
           variant={isMuted ? "destructive" : "outline"}
           size="lg"
           className={`${
-            isMuted 
-              ? 'bg-red-500 hover:bg-red-600' 
-              : 'bg-gray-800 hover:bg-gray-700 border-gray-700'
+            isMuted
+              ? "bg-red-500 hover:bg-red-600"
+              : "bg-gray-800 hover:bg-gray-700 border-gray-700"
           }`}
         >
-          {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+          {isMuted ? (
+            <MicOff className="w-5 h-5" />
+          ) : (
+            <Mic className="w-5 h-5" />
+          )}
         </Button>
-        
+
         <Button
           onClick={toggleVideo}
           variant={isVideoOff ? "destructive" : "outline"}
           size="lg"
           className={`${
-            isVideoOff 
-              ? 'bg-red-500 hover:bg-red-600' 
-              : 'bg-gray-800 hover:bg-gray-700 border-gray-700'
+            isVideoOff
+              ? "bg-red-500 hover:bg-red-600"
+              : "bg-gray-800 hover:bg-gray-700 border-gray-700"
           }`}
         >
-          {isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+          {isVideoOff ? (
+            <VideoOff className="w-5 h-5" />
+          ) : (
+            <Video className="w-5 h-5" />
+          )}
         </Button>
 
         <Button
@@ -71,5 +72,5 @@ export const SessionControls: React.FC<SessionControlsProps> = ({
         </Button>
       </div>
     </div>
-  )
-} 
+  );
+};

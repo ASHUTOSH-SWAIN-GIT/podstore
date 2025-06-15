@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Play, Zap } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Play, Zap } from "lucide-react";
 
 export default function HeroSection() {
   return (
@@ -18,8 +18,9 @@ export default function HeroSection() {
             In Your Browser
           </h1>
           <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-            The collaborative audio and video recording platform built for podcasters, creators, and remote teams.
-            Record locally, upload automatically, download securely.
+            The collaborative audio and video recording platform built for
+            podcasters, creators, and remote teams. Record locally, upload
+            automatically, download securely.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button
@@ -37,9 +38,11 @@ export default function HeroSection() {
               Watch Demo
             </Button>
           </div>
-          <p className="text-sm text-gray-400 mt-4">No downloads required • Free to start • Cancel anytime</p>
+          <p className="text-sm text-gray-400 mt-4">
+            No downloads required • Free to start • Cancel anytime
+          </p>
         </div>
       </div>
     </section>
-  )
-} 
+  );
+}

@@ -1,19 +1,19 @@
-import React from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Users, ArrowLeft } from 'lucide-react'
+import React from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Users, ArrowLeft } from "lucide-react";
 
 interface SessionHeaderProps {
   session: {
-    id: string
-    title: string
-  }
-  isRecording: boolean
-  recordingDuration: number
-  isConnected: boolean
-  participantCount: number
-  formatDuration: (seconds: number) => string
+    id: string;
+    title: string;
+  };
+  isRecording: boolean;
+  recordingDuration: number;
+  isConnected: boolean;
+  participantCount: number;
+  formatDuration: (seconds: number) => string;
 }
 
 export const SessionHeader: React.FC<SessionHeaderProps> = ({
@@ -22,9 +22,9 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
   recordingDuration,
   isConnected,
   participantCount,
-  formatDuration
+  formatDuration,
 }) => {
-  const router = useRouter()
+  const router = useRouter();
 
   return (
     <header className="border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm">
@@ -33,7 +33,7 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
           <div className="flex items-center space-x-6">
             <Button
               variant="ghost"
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push("/dashboard")}
               className="text-gray-400 hover:text-white hover:bg-gray-800/50"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -44,20 +44,25 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
               <p className="text-sm text-gray-400">Session ID: {session.id}</p>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-6">
             {isRecording && (
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                <span className="text-red-400 font-mono">{formatDuration(recordingDuration)}</span>
+                <span className="text-red-400 font-mono">
+                  {formatDuration(recordingDuration)}
+                </span>
               </div>
             )}
-            
-            <Badge variant={isConnected ? "default" : "secondary"} className="bg-green-500/10 text-green-400 border-green-500/20">
+
+            <Badge
+              variant={isConnected ? "default" : "secondary"}
+              className="bg-green-500/10 text-green-400 border-green-500/20"
+            >
               <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-              {isConnected ? 'Connected' : 'Connecting...'}
+              {isConnected ? "Connected" : "Connecting..."}
             </Badge>
-            
+
             <div className="flex items-center space-x-2 text-gray-400">
               <Users className="w-4 h-4" />
               <span>{participantCount + 1}</span>
@@ -66,5 +71,5 @@ export const SessionHeader: React.FC<SessionHeaderProps> = ({
         </div>
       </div>
     </header>
-  )
-} 
+  );
+};

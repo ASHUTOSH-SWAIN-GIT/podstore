@@ -1,21 +1,21 @@
-'use client'
+"use client";
 
-import React, { RefObject, useEffect } from 'react'
-import { useParams } from 'next/navigation'
-import { useAuth } from '@/lib/hooks/useAuth'
-import { useSessionData } from '@/hooks/useSessionData'
-import { useSessionControls } from '@/hooks/useSessionControls'
-import { SessionHeader } from '@/components/session/SessionHeader'
-import { VideoArea } from '@/components/session/VideoArea'
-import { SessionControls } from '@/components/session/SessionControls'
-import { SessionSidebar } from '@/components/session/SessionSidebar'
+import React, { RefObject, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { useSessionData } from "@/hooks/useSessionData";
+import { useSessionControls } from "@/hooks/useSessionControls";
+import { SessionHeader } from "@/components/session/SessionHeader";
+import { VideoArea } from "@/components/session/VideoArea";
+import { SessionControls } from "@/components/session/SessionControls";
+import { SessionSidebar } from "@/components/session/SessionSidebar";
 
 export default function SessionPage() {
-  const params = useParams()
-  const sessionId = params.id as string
-  
-  const { user } = useAuth()
-  const { session, participants, isLoading, error } = useSessionData(sessionId)
+  const params = useParams();
+  const sessionId = params.id as string;
+
+  const { user } = useAuth();
+  const { session, participants, isLoading, error } = useSessionData(sessionId);
   const {
     isRecording,
     recordingDuration,
@@ -32,30 +32,30 @@ export default function SessionPage() {
     toggleVideo,
     handleEndSession,
     connectToRoom,
-    ensureLocalVideoAttached
-  } = useSessionControls()
+    ensureLocalVideoAttached,
+  } = useSessionControls();
 
   // Auto-connect to LiveKit room when session and user are ready
   useEffect(() => {
     if (session && user && !isConnected) {
-      const userId = user.id || user.email || 'anonymous'
-      console.log('Connecting to LiveKit room:', sessionId, 'as user:', userId)
-      connectToRoom(sessionId, userId)
+      const userId = user.id || user.email || "anonymous";
+      console.log("Connecting to LiveKit room:", sessionId, "as user:", userId);
+      connectToRoom(sessionId, userId);
     }
-  }, [session, user, isConnected, sessionId, connectToRoom])
+  }, [session, user, isConnected, sessionId, connectToRoom]);
 
   // Ensure local video is attached after connection
   useEffect(() => {
     if (isConnected) {
-      console.log('Connected to room, ensuring local video is attached')
+      console.log("Connected to room, ensuring local video is attached");
       setTimeout(() => {
-        ensureLocalVideoAttached()
-      }, 1000) // Give some time for tracks to be published
+        ensureLocalVideoAttached();
+      }, 1000); // Give some time for tracks to be published
     }
-  }, [isConnected, ensureLocalVideoAttached])
+  }, [isConnected, ensureLocalVideoAttached]);
 
   // Calculate total participant count (live participants + host)
-  const totalParticipantCount = liveParticipantCount + 1
+  const totalParticipantCount = liveParticipantCount + 1;
 
   if (isLoading) {
     return (
@@ -65,7 +65,7 @@ export default function SessionPage() {
           <p className="text-gray-400">Loading session...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (error || !session) {
@@ -76,12 +76,17 @@ export default function SessionPage() {
             <span className="text-red-400 text-2xl">✕</span>
           </div>
           <div>
-            <h2 className="text-2xl font-semibold text-white mb-2">Session Not Found</h2>
-            <p className="text-gray-400">{error || 'The session you\'re looking for doesn\'t exist or has ended.'}</p>
+            <h2 className="text-2xl font-semibold text-white mb-2">
+              Session Not Found
+            </h2>
+            <p className="text-gray-400">
+              {error ||
+                "The session you're looking for doesn't exist or has ended."}
+            </p>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -94,7 +99,7 @@ export default function SessionPage() {
         participantCount={totalParticipantCount}
         formatDuration={formatDuration}
       />
-      
+
       <div className="flex-1 flex">
         <VideoArea
           localVideoRef={localVideoRef as RefObject<HTMLDivElement>}
@@ -104,7 +109,7 @@ export default function SessionPage() {
           isVideoOff={isVideoOff}
           isMuted={isMuted}
         />
-        
+
         <SessionSidebar
           session={session}
           copyInviteLink={() => copyInviteLink(session)}
@@ -112,7 +117,7 @@ export default function SessionPage() {
           isRecording={isRecording}
         />
       </div>
-      
+
       <SessionControls
         isMuted={isMuted}
         isVideoOff={isVideoOff}
@@ -121,5 +126,5 @@ export default function SessionPage() {
         handleEndSession={handleEndSession}
       />
     </div>
-  )
-} 
+  );
+}

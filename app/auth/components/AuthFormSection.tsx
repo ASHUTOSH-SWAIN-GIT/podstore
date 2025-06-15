@@ -1,6 +1,6 @@
-import AuthHeader from './AuthHeader'
-import AuthTitle from './AuthTitle'
-import GoogleSignInButton from './GoogleSignInButton'
+import AuthHeader from "./AuthHeader";
+import AuthTitle from "./AuthTitle";
+import GoogleSignInButton from "./GoogleSignInButton";
 
 export default function AuthFormSection() {
   return (
@@ -15,5 +15,5 @@ export default function AuthFormSection() {
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}

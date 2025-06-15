@@ -5,12 +5,12 @@ export const apiClient = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, sessionId }),
     });
-    
+
     if (!res.ok) {
       throw new Error("Failed to fetch token from server");
     }
-    
+
     const data = await res.json();
     return data.token;
-  }
-}; 
+  },
+};

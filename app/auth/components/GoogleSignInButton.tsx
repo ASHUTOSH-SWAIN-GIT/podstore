@@ -1,38 +1,38 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { supabase } from "@/lib/supabase/client"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase/client";
 
 export default function GoogleSignInButton() {
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleSignIn = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
+            access_type: "offline",
+            prompt: "consent",
           },
         },
-      })
+      });
 
       if (error) {
-        console.error('Error with Google sign-in:', error.message)
+        console.error("Error with Google sign-in:", error.message);
         // You might want to show a toast or error message here
       }
       // Note: The page will redirect to Google, so we don't need to handle success here
     } catch (error) {
-      console.error('Error with Google sign-in:', error)
+      console.error("Error with Google sign-in:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Button
@@ -89,5 +89,5 @@ export default function GoogleSignInButton() {
         </div>
       )}
     </Button>
-  )
-} 
+  );
+}
