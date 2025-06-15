@@ -4,9 +4,9 @@ import { prisma } from '@/lib/utils/prisma'
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const sessionId = params.id
+  const { id: sessionId } = await params
 
   try {
     const participants = await prisma.participation.findMany({
@@ -27,9 +27,9 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
-) { 1
-  const sessionId = params.id
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: sessionId } = await params
   const body = await req.json()
   const { userId, role } = body
 

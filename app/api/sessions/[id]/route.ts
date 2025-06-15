@@ -3,9 +3,9 @@ import { prisma } from "@/lib/utils/prisma";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const sessionId = params.id;
+  const { id: sessionId } = await params;
 
   try {
     const session = await prisma.session.findUnique({

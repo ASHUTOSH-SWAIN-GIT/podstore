@@ -5,8 +5,15 @@ export const livekitConfig = {
     adaptiveStream: true,
     dynacast: true,
     videoCaptureDefaults: {
-      resolution: { width: 1280, height: 720 }, // Using explicit resolution instead of VideoPresets
+      resolution: { width: 1280, height: 720 },
+      facingMode: 'user' as const, // Front-facing camera for video calls
     },
+  },
+
+  videoOptions: {
+    resolution: { width: 1280, height: 720 },
+    facingMode: 'user' as const,
+    frameRate: 30,
   },
 
   audioOptions: {
