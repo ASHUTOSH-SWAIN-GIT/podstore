@@ -16,9 +16,11 @@ interface SessionSidebarProps {
       email: string;
     };
   };
+  userId: string;
   copyInviteLink: () => void;
   toggleRecording: () => void;
   isRecording: boolean;
+  recordingError?: string | null;
 }
 
 export const SessionSidebar: React.FC<SessionSidebarProps> = ({
@@ -26,6 +28,8 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
   copyInviteLink,
   toggleRecording,
   isRecording,
+  userId,
+  recordingError
 }) => {
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -62,6 +66,15 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
               {format(new Date(session.createdAt), "MMM d, yyyy h:mm a")}
             </div>
           </div>
+
+          <div className="p-3 bg-gray-900 rounded-lg border border-gray-800">
+            <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
+              Status
+            </div>
+            <Badge className={getStatusColor(session.status)}>
+              {session.status}
+            </Badge>
+          </div>
         </div>
       </div>
 
@@ -76,7 +89,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
             <div className="flex space-x-2">
               <input
                 type="text"
-                value={`${window.location.origin}/join/${session.joinToken}`}
+                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/join/${session.joinToken}`}
                 readOnly
                 className="flex-1 px-3 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
@@ -123,6 +136,23 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
             </>
           )}
         </Button>
+        
+        {isRecording && (
+          <div className="text-center">
+            <div className="flex items-center justify-center space-x-2 text-red-400">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+              <span className="text-sm">Recording in progress...</span>
+            </div>
+          </div>
+        )}
+        
+        {recordingError && (
+          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+            <div className="text-red-400 text-sm">
+              <strong>Recording Error:</strong> {recordingError}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import {
   Participant,
 } from "livekit-client";
 import { livekitConfig } from "@/lib/livekit-config";
+import { UploadChunkToServer } from "@/services/upload";
 
 export const useSessionControls = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -21,10 +22,15 @@ export const useSessionControls = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [room, setRoom] = useState<Room | null>(null);
   const [liveParticipantCount, setLiveParticipantCount] = useState(0);
+  const [recordingError, setRecordingError] = useState<string | null>(null);
 
   const localVideoRef = useRef<HTMLDivElement>(null);
   const remoteVideosRef = useRef<HTMLDivElement>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // MediaRecorder refs for actual recording
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
 
   const router = useRouter();
 
@@ -159,6 +165,73 @@ export const useSessionControls = () => {
     }
   };
 
+  // Enhanced recording functions
+  const startMediaRecording = async (sessionId: string, userId: string) => {
+    try {
+      setRecordingError(null);
+      
+      // Get user media for recording
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: true,
+      });
+
+      recordingStreamRef.current = stream;
+      mediaRecorderRef.current = new MediaRecorder(stream, {
+        mimeType: "video/webm",
+      });
+
+      mediaRecorderRef.current.ondataavailable = async (e) => {
+        if (e.data.size > 0) {
+          const file = new File([e.data], `chunk-${Date.now()}.webm`, { 
+            type: "video/webm" 
+          });
+          
+          try {
+            await UploadChunkToServer({ file, sessionId, userId });
+            console.log("Recording chunk uploaded successfully");
+          } catch (err) {
+            console.error("Chunk upload error:", err);
+            setRecordingError("Failed to upload recording chunk");
+          }
+        }
+      };
+
+      mediaRecorderRef.current.onstart = () => {
+        console.log("Media recording started");
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        console.log("Media recording stopped");
+      };
+
+      mediaRecorderRef.current.onerror = (event) => {
+        console.error("MediaRecorder error:", event);
+        setRecordingError("Recording error occurred");
+      };
+
+      // Start recording with 5-second chunks
+      mediaRecorderRef.current.start(5000);
+      
+    } catch (err) {
+      console.error("Failed to start media recording:", err);
+      setRecordingError("Failed to access camera/microphone for recording");
+      throw err;
+    }
+  };
+
+  const stopMediaRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    
+    // Stop recording stream tracks
+    if (recordingStreamRef.current) {
+      recordingStreamRef.current.getTracks().forEach((track) => track.stop());
+      recordingStreamRef.current = null;
+    }
+  };
+
   // Connect to LiveKit room
   const connectToRoom = async (sessionId: string, userId: string) => {
     if (!room) return;
@@ -246,19 +319,38 @@ export const useSessionControls = () => {
     }
   };
 
-  const toggleRecording = () => {
+  // Enhanced toggle recording with actual media recording
+  const toggleRecording = async (sessionId?: string, userId?: string) => {
     if (isRecording) {
+      // Stop recording
       setIsRecording(false);
       setRecordingDuration(0);
+      
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
         recordingIntervalRef.current = null;
       }
+      
+      stopMediaRecording();
     } else {
-      setIsRecording(true);
-      recordingIntervalRef.current = setInterval(() => {
-        setRecordingDuration((prev) => prev + 1);
-      }, 1000);
+      // Start recording
+      if (!sessionId || !userId) {
+        setRecordingError("Session ID and User ID are required for recording");
+        return;
+      }
+      
+      try {
+        await startMediaRecording(sessionId, userId);
+        setIsRecording(true);
+        
+        // Start duration timer
+        recordingIntervalRef.current = setInterval(() => {
+          setRecordingDuration((prev) => prev + 1);
+        }, 1000);
+      } catch (err) {
+        console.error("Failed to start recording:", err);
+        setIsRecording(false);
+      }
     }
   };
 
@@ -333,6 +425,11 @@ export const useSessionControls = () => {
   };
 
   const handleEndSession = () => {
+    // Stop recording if active
+    if (isRecording) {
+      stopMediaRecording();
+    }
+    
     if (recordingIntervalRef.current) {
       clearInterval(recordingIntervalRef.current);
     }
@@ -351,12 +448,14 @@ export const useSessionControls = () => {
       if (room) {
         room.disconnect();
       }
+      stopMediaRecording();
     };
   }, [room]);
 
   return {
     isRecording,
     recordingDuration,
+    recordingError,
     isMuted,
     isVideoOff,
     isConnected,

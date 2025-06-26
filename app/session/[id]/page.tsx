@@ -19,6 +19,7 @@ export default function SessionPage() {
   const {
     isRecording,
     recordingDuration,
+    recordingError,
     isMuted,
     isVideoOff,
     isConnected,
@@ -112,9 +113,11 @@ export default function SessionPage() {
 
         <SessionSidebar
           session={session}
+          userId={user?.id || user?.email || "anonymous"}
           copyInviteLink={() => copyInviteLink(session)}
-          toggleRecording={toggleRecording}
+          toggleRecording={() => toggleRecording(sessionId, user?.id || user?.email || "anonymous")}
           isRecording={isRecording}
+          recordingError={recordingError}
         />
       </div>
 

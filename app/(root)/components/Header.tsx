@@ -2,7 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Headphones, User, LogOut, Settings, ChevronDown, Menu, X } from "lucide-react";
+import {
+  Headphones,
+  User,
+  LogOut,
+  Settings,
+  ChevronDown,
+  Menu,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {

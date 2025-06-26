@@ -15,7 +15,7 @@ export const UploadChunkToServer = async ({
   formData.append("userId", userId);
   formData.append("type", type);
 
-  const res = await fetch("/app/api/upload-chunk", {
+  const res = await fetch("/api/upload-chunk", {
     method: "POST",
     body: formData,
   });
