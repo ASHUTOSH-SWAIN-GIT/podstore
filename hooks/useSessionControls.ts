@@ -31,6 +31,7 @@ export const useSessionControls = () => {
   // MediaRecorder refs for actual recording
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingStreamRef = useRef<MediaStream | null>(null);
+  const chunkIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const router = useRouter();
 
@@ -46,12 +47,10 @@ export const useSessionControls = () => {
 
   // LiveKit event handlers
   const handleParticipantConnected = (participant: RemoteParticipant) => {
-    console.log("Participant connected:", participant.identity);
     setLiveParticipantCount((prev) => prev + 1);
   };
 
   const handleParticipantDisconnected = (participant: RemoteParticipant) => {
-    console.log("Participant disconnected:", participant.identity);
     setLiveParticipantCount((prev) => Math.max(0, prev - 1));
 
     // Remove the participant's video container
@@ -134,11 +133,6 @@ export const useSessionControls = () => {
     publication: LocalTrackPublication,
     participant: LocalParticipant,
   ) => {
-    console.log(
-      "Local track published:",
-      publication.kind,
-      publication.trackSid,
-    );
     if (publication.kind === Track.Kind.Video && publication.track) {
       const videoEl = publication.track.attach();
       videoEl.style.width = "100%";
@@ -150,9 +144,6 @@ export const useSessionControls = () => {
         // Clear any existing content and add the video element
         localVideoRef.current.innerHTML = "";
         localVideoRef.current.appendChild(videoEl);
-        console.log("Local video attached to ref");
-      } else {
-        console.warn("localVideoRef.current is null");
       }
     }
   };
@@ -181,28 +172,42 @@ export const useSessionControls = () => {
         mimeType: "video/webm",
       });
 
+      let chunkCount = 0;
+
       mediaRecorderRef.current.ondataavailable = async (e) => {
         if (e.data.size > 0) {
-          const file = new File([e.data], `chunk-${Date.now()}.webm`, { 
+          chunkCount++;
+          const chunkStartTime = performance.now();
+          
+          const file = new File([e.data], `chunk-${chunkCount}-${Date.now()}.webm`, { 
             type: "video/webm" 
           });
           
           try {
             await UploadChunkToServer({ file, sessionId, userId });
-            console.log("Recording chunk uploaded successfully");
+            const uploadTime = performance.now() - chunkStartTime;
           } catch (err) {
-            console.error("Chunk upload error:", err);
+            console.error(`Chunk ${chunkCount} upload error:`, err);
             setRecordingError("Failed to upload recording chunk");
           }
         }
       };
 
       mediaRecorderRef.current.onstart = () => {
-        console.log("Media recording started");
+        
+        // Use manual requestData() every 10 seconds for reliable chunking
+        chunkIntervalRef.current = setInterval(() => {
+          if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.requestData();
+          }
+        }, 10000); // Exactly 10 seconds
       };
 
       mediaRecorderRef.current.onstop = () => {
-        console.log("Media recording stopped");
+        if (chunkIntervalRef.current) {
+          clearInterval(chunkIntervalRef.current);
+          chunkIntervalRef.current = null;
+        }
       };
 
       mediaRecorderRef.current.onerror = (event) => {
@@ -210,8 +215,8 @@ export const useSessionControls = () => {
         setRecordingError("Recording error occurred");
       };
 
-      // Start recording with 5-second chunks
-      mediaRecorderRef.current.start(5000);
+      // Start recording WITHOUT timeslice - we'll use manual requestData() instead
+      mediaRecorderRef.current.start();
       
     } catch (err) {
       console.error("Failed to start media recording:", err);
@@ -221,6 +226,12 @@ export const useSessionControls = () => {
   };
 
   const stopMediaRecording = () => {
+    // Clear the chunk interval first
+    if (chunkIntervalRef.current) {
+      clearInterval(chunkIntervalRef.current);
+      chunkIntervalRef.current = null;
+    }
+    
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     }
@@ -264,9 +275,6 @@ export const useSessionControls = () => {
         room.remoteParticipants.values(),
       ).length;
       setLiveParticipantCount(existingParticipants);
-      console.log(
-        `Connected to room with ${existingParticipants} existing participants`,
-      );
 
       // Enable camera and microphone
       await room.localParticipant.setCameraEnabled(
@@ -391,9 +399,6 @@ export const useSessionControls = () => {
                 if (localVideoRef.current) {
                   localVideoRef.current.innerHTML = "";
                   localVideoRef.current.appendChild(videoEl);
-                  console.log(
-                    "Local video manually attached after enabling camera",
-                  );
                 }
               }
             },
@@ -418,7 +423,6 @@ export const useSessionControls = () => {
 
           localVideoRef.current!.innerHTML = "";
           localVideoRef.current!.appendChild(videoEl);
-          console.log("Local video manually ensured");
         }
       });
     }

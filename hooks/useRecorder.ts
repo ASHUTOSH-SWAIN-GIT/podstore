@@ -10,6 +10,7 @@ export const useRecorder = ({
 }) => {
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const chunkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +21,12 @@ export const useRecorder = ({
   }, []);
 
   const stopRecording = () => {
+    // Clear the chunk interval first
+    if (chunkIntervalRef.current) {
+      clearInterval(chunkIntervalRef.current);
+      chunkIntervalRef.current = null;
+    }
+    
     if (mediaRecorder.current && isRecording) {
       mediaRecorder.current.stop();
       setIsRecording(false);
@@ -52,17 +59,22 @@ export const useRecorder = ({
         mimeType: "video/webm",
       });
 
+      let chunkCount = 0;
+
       mediaRecorder.current.ondataavailable = async (e) => {
         if (e.data.size > 0) {
-          const file = new File([e.data], `chunk-${Date.now()}.webm`, { 
+          chunkCount++;
+          const chunkStartTime = performance.now();
+          
+          const file = new File([e.data], `useRecorder-chunk-${chunkCount}-${Date.now()}.webm`, { 
             type: "video/webm" 
           });
           
           try {
             await UploadChunkToServer({ file, sessionId, userId });
-            console.log("Chunk uploaded successfully");
+            const uploadTime = performance.now() - chunkStartTime;
           } catch (err) {
-            console.error("Chunk upload error:", err);
+            console.error(`useRecorder Chunk ${chunkCount} upload error:`, err);
             setError("Failed to upload recording chunk");
           }
         }
@@ -70,22 +82,31 @@ export const useRecorder = ({
 
       mediaRecorder.current.onstart = () => {
         setIsRecording(true);
-        console.log("Recording started");
+        
+        // Use manual requestData() every 10 seconds for reliable chunking
+        chunkIntervalRef.current = setInterval(() => {
+          if (mediaRecorder.current && mediaRecorder.current.state === 'recording') {
+            mediaRecorder.current.requestData();
+          }
+        }, 10000); // Exactly 10 seconds
       };
 
       mediaRecorder.current.onstop = () => {
         setIsRecording(false);
-        console.log("Recording stopped");
+        if (chunkIntervalRef.current) {
+          clearInterval(chunkIntervalRef.current);
+          chunkIntervalRef.current = null;
+        }
       };
 
       mediaRecorder.current.onerror = (event) => {
-        console.error("MediaRecorder error:", event);
+        console.error("useRecorder MediaRecorder error:", event);
         setError("Recording error occurred");
         setIsRecording(false);
       };
 
-      // Start recording with 5-second chunks
-      mediaRecorder.current.start(5000);
+      // Start recording WITHOUT timeslice - we'll use manual requestData() instead
+      mediaRecorder.current.start();
       
     } catch (err) {
       console.error("Failed to start recording:", err);
@@ -104,6 +125,9 @@ export const useRecorder = ({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (chunkIntervalRef.current) {
+        clearInterval(chunkIntervalRef.current);
+      }
       stopRecording();
     };
   }, []);

@@ -13,16 +13,6 @@ model User {
   email          String?          @unique
   createdAt      DateTime        @default(now())
   name           String?
-  first_name     String?
-  last_name      String?
-  display_name   String?
-  username       String?         @unique
-  bio            String?
-  location       String?
-  avatar_url     String?
-  role           UserRole        @default(USER)
-  is_hide_name   Boolean         @default(false)
-  is_private     Boolean         @default(false)
   participations Participation[]
   sessions       Session[]       @relation("HostSessions")
 }
@@ -122,7 +112,4 @@ enum JobStatus {
   FAILED
 }
 
-enum UserRole {
-  USER
-  HOST
-}
+

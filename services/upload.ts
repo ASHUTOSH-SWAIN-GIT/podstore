@@ -20,10 +20,19 @@ export const UploadChunkToServer = async ({
     body: formData,
   });
 
+  
+
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "upload failed");
+    let errorMessage = "upload failed";
+    try {
+      const err = await res.json();
+      errorMessage = err.error || errorMessage;
+    } catch {
+      // If response is not JSON, use status text or default message
+      errorMessage = res.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
 
-  return res.json;
+  return res.json();
 };

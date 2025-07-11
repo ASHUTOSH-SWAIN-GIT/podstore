@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Session {
   id: string;
@@ -65,29 +65,15 @@ export default function JoinPage() {
       // If user is not signed in, redirect to auth first
       if (!user) {
         const authUrl = new URL("/auth", window.location.origin);
-        authUrl.searchParams.set("returnTo", `/join/${token}`);
+        authUrl.searchParams.set("returnTo", `/setup/${token}`);
         router.push(authUrl.toString());
         return;
       }
 
-      // Join the session
-      const response = await fetch(`/api/sessions/${session.id}/participants`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id,
-          role: "GUEST",
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to join session");
-      }
-
-      // Redirect to the session
-      router.push(`/session/${session.id}`);
+      // Redirect to setup page for device configuration
+      router.push(`/setup/${token}`);
     } catch (err) {
-      setError("Failed to join session");
+      setError("Failed to access session setup");
     } finally {
       setJoining(false);
     }
@@ -192,7 +178,7 @@ export default function JoinPage() {
               disabled={joining}
               className="w-full bg-black hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-4 px-4 font-light transition-colors duration-200 uppercase text-sm tracking-wide"
             >
-              {joining ? "Joining..." : "Join Session"}
+              {joining ? "Setting up..." : "Continue to Setup"}
             </button>
 
             <div className="text-center">

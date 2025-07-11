@@ -1,68 +1,63 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/utils/prisma";
-import B2 from "backblaze-b2";
-import { v4 as uuidv4 } from "uuid";
+import { mediaQueue } from "@/lib/queues/mediaQueue";
 
-const b2 = new B2({
-  applicationKeyId: process.env.B2_KEY_ID ?? "",
-  applicationKey: process.env.B2_APPLICATION_KEY ?? "",
-});
+
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB limit
 
 export async function POST(req: NextRequest) {
+  let b2FileName: string | null = null;
+  
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
-    const sessionId = formData.get("sessionId")?.toString();
     const userId = formData.get("userId")?.toString();
+    const sessionId = formData.get("sessionId")?.toString();
     const type = formData.get("type")?.toString() || "AUDIO_VIDEO";
 
     if (!file || !sessionId || !userId) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    // Authorize with B2
-    await b2.authorize();
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `File size exceeds limit of ${MAX_FILE_SIZE / (1024 * 1024)}MB` },
+        { status: 413 }
+      );
+    }
 
-    // Get upload URL from B2
-    const { data: uploadUrlData } = await b2.getUploadUrl({
-      bucketId: process.env.B2_BUCKET_ID!,
+    // Validate file type
+    if (!file.type.includes('webm') && !file.name.endsWith('.webm')) {
+      return NextResponse.json(
+        { error: "Only WebM files are supported" },
+        { status: 415 }
+      );
+    }
+
+    // Read file buffer
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    // Add job to processing queue, passing the buffer
+    await mediaQueue.add("convert-and-upload", {
+      fileBuffer: buffer,
+      sessionId,
+      userId,
+      type,
+    },{
+      removeOnComplete:true,
+      attempts: 3
     });
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const fileName = `media/${uuidv4()}.webm`;
+    return NextResponse.json(
+      { success: true, message: "File chunk sent to queue for processing." },
+      { status: 202 }
+    );
 
-    // Upload the file to B2
-    await b2.uploadFile({
-      uploadUrl: uploadUrlData.uploadUrl,
-      uploadAuthToken: uploadUrlData.authorizationToken,
-      fileName,
-      data: buffer,
-      mime: "video/webm", // important for playback
-      hash: "do_not_verify", // skips sha1, useful for chunked uploads
-    });
-
-    const fileUrl = `${process.env.B2_PUBLIC_URL}/${fileName}`;
-
-    // Save metadata in the DB
-    const media = await prisma.mediaFile.create({
-      data: {
-        sessionId,
-
-        url: fileUrl,
-        type: `AUDIO_VIDEO`,
-        status: "COMPLETE",
-        s3Key: fileName,
-        isFinal: false,
-      },
-    });
-
-    return NextResponse.json({ success: true, media }, { status: 201 });
   } catch (error) {
-    console.error("Upload failed:", error);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    console.error("Upload route error:", error);
+    return NextResponse.json({ error: "Failed to upload file to B2 or queue job" }, { status: 500 });
   }
 }

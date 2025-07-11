@@ -1,6 +1,6 @@
 "use client";
 
-import React, { RefObject, useEffect } from "react";
+import React, { RefObject, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useSessionData } from "@/hooks/useSessionData";
@@ -36,19 +36,39 @@ export default function SessionPage() {
     ensureLocalVideoAttached,
   } = useSessionControls();
 
+  // Get device preferences from URL parameters (client-side only)
+  const [devicePreferences, setDevicePreferences] = useState<{
+    audioDevice?: string | null;
+    videoDevice?: string | null;
+    cameraEnabled?: boolean;
+    micEnabled?: boolean;
+  }>({});
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      setDevicePreferences({
+        audioDevice: searchParams.get('audioDevice'),
+        videoDevice: searchParams.get('videoDevice'),
+        cameraEnabled: searchParams.get('cameraEnabled') !== 'false',
+        micEnabled: searchParams.get('micEnabled') !== 'false',
+      });
+    }
+  }, []);
+
   // Auto-connect to LiveKit room when session and user are ready
   useEffect(() => {
-    if (session && user && !isConnected) {
+    if (session && user && !isConnected && Object.keys(devicePreferences).length > 0) {
       const userId = user.id || user.email || "anonymous";
-      console.log("Connecting to LiveKit room:", sessionId, "as user:", userId);
-      connectToRoom(sessionId, userId);
+      
+      // Pass device preferences to connectToRoom
+      connectToRoom(sessionId, userId, devicePreferences);
     }
-  }, [session, user, isConnected, sessionId, connectToRoom]);
+  }, [session, user, isConnected, sessionId, connectToRoom, devicePreferences]);
 
   // Ensure local video is attached after connection
   useEffect(() => {
     if (isConnected) {
-      console.log("Connected to room, ensuring local video is attached");
       setTimeout(() => {
         ensureLocalVideoAttached();
       }, 1000); // Give some time for tracks to be published
