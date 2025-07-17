@@ -171,7 +171,9 @@ export const useSessionControls = () => {
 
       recordingStreamRef.current = stream;
       mediaRecorderRef.current = new MediaRecorder(stream, {
-        mimeType: "video/webm",
+        mimeType: "video/webm;codecs=vp8,opus", // More specific codec specification
+        videoBitsPerSecond: 2500000, // 2.5 Mbps for better quality
+        audioBitsPerSecond: 128000,  // 128 kbps audio
       });
 
       let chunkCount = 0;
@@ -179,26 +181,21 @@ export const useSessionControls = () => {
       mediaRecorderRef.current.ondataavailable = async (e) => {
         console.log(`Data available - Size: ${e.data.size}, Type: ${e.data.type}`);
         
-        // Skip processing if we're in the process of stopping
-        if (isStoppingRef.current) {
-          console.log(`Skipping chunk during stop - Size: ${e.data.size} bytes`);
-          return;
-        }
-        
         if (e.data.size > 0) {
           chunkCount++;
           const chunkStartTime = performance.now();
+          const isFinalChunk = isStoppingRef.current;
           
           const file = new File([e.data], `chunk-${chunkCount}-${Date.now()}.webm`, { 
             type: "video/webm" 
           });
           
-          console.log(`Created file - Size: ${file.size}, Name: ${file.name}`);
+          console.log(`Created file - Size: ${file.size}, Name: ${file.name}, Final: ${isFinalChunk}`);
           
           try {
-            await UploadChunkToServer({ file, sessionId, userId });
+            await UploadChunkToServer({ file, sessionId, userId, isFinal: isFinalChunk });
             const uploadTime = performance.now() - chunkStartTime;
-            console.log(`Chunk ${chunkCount}: ${(file.size / 1024 / 1024).toFixed(2)}MB, ${uploadTime.toFixed(0)}ms`);
+            console.log(`Chunk ${chunkCount}: ${(file.size / 1024 / 1024).toFixed(2)}MB, ${uploadTime.toFixed(0)}ms, Final: ${isFinalChunk}`);
           } catch (err) {
             console.error(`Chunk ${chunkCount} upload error:`, err);
             setRecordingError("Failed to upload recording chunk");
@@ -241,9 +238,6 @@ export const useSessionControls = () => {
   };
 
   const stopMediaRecording = () => {
-    // Set the stopping flag to prevent processing the final chunk
-    isStoppingRef.current = true;
-    
     // Clear the chunk interval first
     if (chunkIntervalRef.current) {
       clearInterval(chunkIntervalRef.current);
@@ -251,6 +245,8 @@ export const useSessionControls = () => {
     }
     
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      // Set the stopping flag BEFORE stopping to mark the final chunk
+      isStoppingRef.current = true;
       mediaRecorderRef.current.stop();
     }
     
@@ -259,11 +255,6 @@ export const useSessionControls = () => {
       recordingStreamRef.current.getTracks().forEach((track) => track.stop());
       recordingStreamRef.current = null;
     }
-    
-    // Reset the stopping flag after a short delay to allow the final chunk to be skipped
-    setTimeout(() => {
-      isStoppingRef.current = false;
-    }, 100);
   };
 
   // Connect to LiveKit room

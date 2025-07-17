@@ -61,8 +61,8 @@ export default function SessionPage() {
     if (session && user && !isConnected && Object.keys(devicePreferences).length > 0) {
       const userId = user.id || user.email || "anonymous";
       
-      // Pass device preferences to connectToRoom
-      connectToRoom(sessionId, userId, devicePreferences);
+      // Connect to room with session and user ID
+      connectToRoom(sessionId, userId);
     }
   }, [session, user, isConnected, sessionId, connectToRoom, devicePreferences]);
 

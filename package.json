@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write .",
-    "worker": "npx tsx workers/mediaWorker.ts "
+    "worker": "concurrently \"npx tsx workers/mediaWorker.ts\" \"npx tsx workers/upload-worker.ts\""
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.837.0",
@@ -58,6 +58,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
     "i": "^0.3.7",

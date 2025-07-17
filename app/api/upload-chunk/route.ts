@@ -1,33 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mediaQueue } from "@/lib/queues/mediaQueue";
+import fs from "fs";
+import path from "path";
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB limit
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB limit per chunk
+const TEMP_DIR = "/tmp/recordings"; // Directory to store stitched files
+
+// Ensure the temporary directory exists when the server starts
+if (!fs.existsSync(TEMP_DIR)) {
+  fs.mkdirSync(TEMP_DIR, { recursive: true });
+}
 
 export async function POST(req: NextRequest) {
-  const startTime = performance.now();
-  console.log(`[UPLOAD-CHUNK] Request started at: ${new Date().toISOString()}`);
-  
   try {
-    // Parse form data with streaming for better performance
-    const formDataStartTime = performance.now();
     const formData = await req.formData();
-    const formDataDuration = performance.now() - formDataStartTime;
-    console.log(`[UPLOAD-CHUNK] FormData parsed in: ${formDataDuration.toFixed(2)}ms`);
-
     const file = formData.get("file") as File;
-    const userId = formData.get("userId")?.toString();
     const sessionId = formData.get("sessionId")?.toString();
-    const type = formData.get("type")?.toString() || "AUDIO_VIDEO";
+    const userId = formData.get("userId")?.toString();
+    const isFinal = formData.get("isFinal")?.toString(); // Check for the final chunk flag
 
-    // Quick validation without extra logging overhead
-    if (!file || !sessionId || !userId) {
+    // --- Validation ---
+    if (!file || !sessionId) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required fields: sessionId and file" },
         { status: 400 }
       );
     }
 
-    // Fast file size check
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         { error: `File size exceeds limit of ${MAX_FILE_SIZE / (1024 * 1024)}MB` },
@@ -35,43 +34,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Optimized buffer conversion using streaming
-    const bufferStartTime = performance.now();
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = new Uint8Array(arrayBuffer);
-    const bufferDuration = performance.now() - bufferStartTime;
-    
-    console.log(`[UPLOAD-CHUNK] Buffer created - Size: ${file.size} bytes, Time: ${bufferDuration.toFixed(2)}ms`);
+    // --- Stitching Logic ---
+    const tempFilePath = path.join(TEMP_DIR, `${sessionId}.webm`);
+    const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Add job to queue with priority for faster processing
-    const queueStartTime = performance.now();
-    const job = await mediaQueue.add("convert-and-upload", {
-      fileBuffer: Array.from(buffer), // Convert Uint8Array to regular array for JSON serialization
-      sessionId,
-      userId,
-      type,
-    }, {
-      // Optimize job options for performance
-      priority: 10, // Higher priority for media chunks
-      delay: 0,     // Process immediately
-      removeOnComplete: true,
-      attempts: 2,  // Reduce attempts for faster failure handling
-    });
-    
-    const queueDuration = performance.now() - queueStartTime;
-    console.log(`[UPLOAD-CHUNK] Job ${job.id} queued in: ${queueDuration.toFixed(2)}ms`);
+    // Append the received chunk's data to the temporary file
+    fs.appendFileSync(tempFilePath, buffer);
+    console.log(`[UPLOAD-CHUNK] Appended chunk to ${tempFilePath}. Size: ${buffer.length}`);
 
-    const totalDuration = performance.now() - startTime;
-    console.log(`[UPLOAD-CHUNK] Total duration: ${totalDuration.toFixed(2)}ms`);
-    
+    // --- Job Creation on Final Chunk ---
+    if (isFinal === "true") {
+      console.log(`[UPLOAD-CHUNK] Final chunk for ${sessionId} received. Adding job to queue.`);
+      
+      try {
+        const job = await mediaQueue.add("convert-file", {
+          filePath: tempFilePath, // Pass the path to the COMPLETE stitched file
+          sessionId,
+          userId,
+          type: formData.get("type")?.toString() || "AUDIO_VIDEO",
+        }, {
+          removeOnComplete: true,
+          removeOnFail: true,
+        });
+
+        console.log(`[UPLOAD-CHUNK] Job ${job.id} queued for conversion.`);
+        return NextResponse.json(
+          { success: true, jobId: job.id, message: "Recording complete, processing started." },
+          { status: 202 } // 202 Accepted: The request has been accepted for processing
+        );
+      } catch (queueError) {
+        console.error("[UPLOAD-CHUNK] Failed to add final job to queue:", queueError);
+        return NextResponse.json({ error: "Failed to queue the final processing job." }, { status: 500 });
+      }
+    }
+
+    // If it's not the final chunk, just acknowledge receipt
     return NextResponse.json(
-      { success: true, jobId: job.id },
-      { status: 202 }
+      { success: true, message: "Chunk received" },
+      { status: 200 }
     );
 
   } catch (error) {
-    const duration = performance.now() - startTime;
-    console.error(`[UPLOAD-CHUNK] Failed after ${duration.toFixed(2)}ms:`, error);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    console.error("[UPLOAD-CHUNK] An unexpected error occurred:", error);
+    return NextResponse.json({ error: "Upload failed due to a server error." }, { status: 500 });
   }
 }

@@ -1,11 +1,11 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+// import { Inter } from "next/font/google";
 import "./globals.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./components/app-sidebar";
 
-const inter = Inter({ subsets: ["latin"] });
+// const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -18,9 +18,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <main className="flex-1 overflow-auto">{children}</main>
-    </SidebarProvider>
+    <html lang="en">
+      <body className={`antialiased`}>
+        {/* <body className={inter.className}> */}
+        <SidebarProvider>
+          <AppSidebar />
+          <main className="flex-1">{children}</main>
+        </SidebarProvider>
+      </body>
+    </html>
   );
 }
