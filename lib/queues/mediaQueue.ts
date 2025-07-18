@@ -24,7 +24,7 @@ async function testRedisConnection(): Promise<boolean> {
   }
 }
 
-export const mediaQueue = new Queue('media-processing', {
+export const conversionQueue = new Queue('media-processing', {
     connection: {
         url: process.env.REDIS_URL!,
         // OPTIMIZED: Redis performance settings with better error handling

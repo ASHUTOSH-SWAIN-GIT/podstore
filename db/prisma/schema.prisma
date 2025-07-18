@@ -8,9 +8,24 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// --- NEW MODEL: For individual recording segments ---
+// This table stores metadata for each raw chunk uploaded to temporary storage (e.g., B2).
+model RecordingChunk {
+  id            String   @id @default(cuid())
+  sessionId     String
+  participantId String   // Links the chunk to a specific participant in the session
+  chunkIndex    Int      // The order of the chunk in the sequence (0, 1, 2, ...)
+  storagePath   String   // The path/key of the chunk file in B2 storage
+  createdAt     DateTime @default(now())
+
+  // --- Relations ---
+  session       Session       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  participant   Participation @relation(fields: [participantId], references: [id], onDelete: Cascade)
+}
+
 model User {
   id             String          @id @default(cuid())
-  email          String?          @unique
+  email          String?         @unique
   createdAt      DateTime        @default(now())
   name           String?
   participations Participation[]
@@ -31,6 +46,9 @@ model Session {
   participants  Participation[]
   processingJob ProcessingJob[]
   host          User            @relation("HostSessions", fields: [hostId], references: [id])
+
+  // --- ADDED RELATION: A session can have many chunks ---
+  chunks        RecordingChunk[]
 }
 
 model Participation {
@@ -44,8 +62,12 @@ model Participation {
   mediaFiles MediaFile[]
   session    Session?    @relation(fields: [sessionId], references: [id])
   user       User        @relation(fields: [userId], references: [id])
+
+  // --- ADDED RELATION: A participant can record many chunks ---
+  chunks     RecordingChunk[]
 }
 
+// This model is for the FINAL, stitched media file
 model MediaFile {
   id            String         @id @default(cuid())
   sessionId     String
@@ -57,6 +79,7 @@ model MediaFile {
   url           String?
   duration      Int?
   uploadedAt    DateTime?
+  
   participant   Participation? @relation(fields: [participantId], references: [id])
   session       Session        @relation(fields: [sessionId], references: [id])
 }
@@ -90,6 +113,8 @@ enum MediaType {
   VIDEO
   AUDIO_VIDEO
   SCREEN
+  // It might be useful to add a type for the final stitched file
+  AUDIO_VIDEO_FINAL
 }
 
 enum UploadStatus {
@@ -103,6 +128,8 @@ enum JobType {
   MERGE_AUDIO_VIDEO
   TRANSCRIBE
   NORMALIZE_AUDIO
+  // A new job type for the stitching process
+  STITCH_CHUNKS
 }
 
 enum JobStatus {
@@ -111,5 +138,3 @@ enum JobStatus {
   SUCCESS
   FAILED
 }
-
-

@@ -1,42 +1,19 @@
 "use client";
 
-import {
-  BadgeCheck,
-  Bell,
-  ChevronsUpDown,
-  CreditCard,
-  LogOut,
-  Sparkles,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
-import { ModeToggle } from "@/components/ui/themeSwitcher";
 
 export function NavUser({}) {
-  const { isMobile } = useSidebar();
-
+  const { user, signOut } = useAuth();
   const router = useRouter();
-  const { user, signOut, loading } = useAuth();
-
-  const handleRedirect = () => {
-    router.push("/auth");
-  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -74,107 +51,43 @@ export function NavUser({}) {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
-              <Avatar className="w-9 h-9 border border-gray-600">
-                <AvatarImage
-                  src={
-                    user?.user_metadata?.avatar_url ||
-                    user?.user_metadata?.picture
-                  }
-                  alt={getUserDisplayName()}
-                  className="object-cover"
-                />
-                <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-sm font-medium">
-                  {getUserInitials(
-                    user?.user_metadata?.full_name || user?.user_metadata?.name,
-                    user?.email,
-                  )}
-                </AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">
-                  {user?.user_metadata?.name}
-                </span>
-                <span className="truncate text-xs">
-                  {user?.user_metadata?.email}
-                </span>
-              </div>
-              <ChevronsUpDown className="ml-auto size-4" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
-            align="end"
-            sideOffset={4}
+        <div className="flex items-center gap-1">
+          <SidebarMenuButton size="sm" className="pointer-events-none flex-1">
+            <Avatar className="w-6 h-6 border border-border">
+              <AvatarImage
+                src={
+                  user?.user_metadata?.avatar_url ||
+                  user?.user_metadata?.picture
+                }
+                alt={getUserDisplayName()}
+                className="object-cover"
+              />
+              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-medium">
+                {getUserInitials(
+                  user?.user_metadata?.full_name || user?.user_metadata?.name,
+                  user?.email,
+                )}
+              </AvatarFallback>
+            </Avatar>
+            <div className="grid flex-1 text-left text-xs leading-tight">
+              <span className="truncate font-semibold">
+                {user?.user_metadata?.name}
+              </span>
+              <span className="truncate text-xs">
+                {user?.user_metadata?.email}
+              </span>
+            </div>
+          </SidebarMenuButton>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSignOut}
+            className="h-6 w-6 text-muted-foreground hover:text-foreground"
+            title="Sign out"
           >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage
-                    src={
-                      user?.user_metadata?.avatar_url ||
-                      user?.user_metadata?.picture
-                    }
-                    alt={user?.user_metadata?.name}
-                  />
-                  <AvatarFallback className="rounded-lg">
-                    {user?.user_metadata?.name
-                      .split(" ")
-                      .map((n: any) => n[0])
-                      .join("")}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">
-                    {user?.user_metadata?.name}
-                  </span>
-                  <span className="truncate text-xs">
-                    {user?.user_metadata?.email}
-                  </span>
-                </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <div className="px-2 py-1">
-                <ModeToggle />
-              </div>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <LogOut className="h-3 w-3" />
+          </Button>
+        </div>
       </SidebarMenuItem>
     </SidebarMenu>
   );

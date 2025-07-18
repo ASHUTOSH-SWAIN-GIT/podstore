@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Video, VideoOff, Mic, MicOff, Settings, Check, X } from "lucide-react";
+import { Video, VideoOff, Mic, MicOff, Settings, Check, X, ChevronDown } from "lucide-react";
 import { Room } from "livekit-client";
 
 interface Session {
@@ -30,540 +30,325 @@ export default function SetupPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Device states
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedAudio, setSelectedAudio] = useState<string>("");
   const [selectedVideo, setSelectedVideo] = useState<string>("");
   
-  // Permission states
-  const [cameraPermission, setCameraPermission] = useState<'checking' | 'granted' | 'denied' | 'prompt'>('checking');
-  const [microphonePermission, setMicrophonePermission] = useState<'checking' | 'granted' | 'denied' | 'prompt'>('checking');
+  const [cameraPermission, setCameraPermission] = useState<'checking' | 'granted' | 'denied' | 'prompt'>('prompt');
+  const [microphonePermission, setMicrophonePermission] = useState<'checking' | 'granted' | 'denied' | 'prompt'>('prompt');
   const [isRequestingPermissions, setIsRequestingPermissions] = useState(false);
   
-  // Media states
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
-  const [isCameraOn, setIsCameraOn] = useState(true);
+  const [isCameraOn, setIsCameraOn] = useState(false);
   const [isMicOn, setIsMicOn] = useState(true);
-  const [isUsingHeadphones, setIsUsingHeadphones] = useState(false);
+  const [isUsingHeadphones, setIsUsingHeadphones] = useState(true);
   
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Get device preferences from URL parameters
-  const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
-  
-  useEffect(() => {
-    // Only access window on client side
-    if (typeof window !== 'undefined') {
-      setSearchParams(new URLSearchParams(window.location.search));
-    }
-  }, []);
-
-  // Fetch session by token
   useEffect(() => {
     const fetchSession = async () => {
-      try {
-        const response = await fetch(`/api/sessions/by-token/${token}`);
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError("Invalid or expired invite link");
-          } else {
-            setError("Failed to load session");
-          }
+      if (!token) {
+          setError("Session token is missing.");
+          setLoading(false);
           return;
+      }
+      try {
+        let response = await fetch(`/api/sessions/by-token/${token}`);
+        if (!response.ok) {
+          response = await fetch(`/api/sessions/${token}`);
         }
-
+        if (!response.ok) {
+          throw new Error("Invalid or expired session link");
+        }
         const sessionData = await response.json();
         setSession(sessionData);
       } catch (err) {
-        setError("Failed to load session");
+        setError("Failed to load session details.");
       } finally {
         setLoading(false);
       }
     };
-
-    if (token) {
-      fetchSession();
-    }
+    fetchSession();
   }, [token]);
 
-  // Check permissions and get devices
-  useEffect(() => {
-    const setupDevicesAndPermissions = async () => {
-      try {
-        // Check current permissions
-        const cameraStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
-        const microphoneStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-        
-        setCameraPermission(cameraStatus.state);
-        setMicrophonePermission(microphoneStatus.state);
-
-        // Get devices
-        const audio = await Room.getLocalDevices("audioinput");
-        const video = await Room.getLocalDevices("videoinput");
-
-        setAudioDevices(audio);
-        setVideoDevices(video);
-        setSelectedAudio(audio[0]?.deviceId || "");
-        setSelectedVideo(video[0]?.deviceId || "");
-
-        // If permissions are granted, start media stream
-        if (cameraStatus.state === 'granted' && microphoneStatus.state === 'granted') {
-          await startMediaPreview();
-        }
-      } catch (error) {
-        console.error("Failed to setup devices:", error);
-      }
-    };
-
-    setupDevicesAndPermissions();
-  }, []);
-
-  const startMediaPreview = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { deviceId: selectedVideo ? { exact: selectedVideo } : undefined },
-        audio: { deviceId: selectedAudio ? { exact: selectedAudio } : undefined }
-      });
-
-      setMediaStream(stream);
-      setCameraPermission('granted');
-      setMicrophonePermission('granted');
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (err) {
-      console.error("Failed to get user media:", err);
-      setCameraPermission('denied');
-      setMicrophonePermission('denied');
-    }
-  };
-
-  const requestPermissions = async () => {
+  const requestPermissionsAndGetDevices = async () => {
     setIsRequestingPermissions(true);
     try {
-      // Explicitly request both camera and microphone permissions
-      // Using basic constraints to ensure maximum compatibility
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true, // Request basic video access first
-        audio: true  // Request basic audio access first
+          video: true,
+          audio: true,
       });
 
-      // Stop the basic stream
-      stream.getTracks().forEach(track => track.stop());
-      
-      // Now get the stream with specific device constraints if available
-      const finalStream = await navigator.mediaDevices.getUserMedia({
-        video: selectedVideo ? { deviceId: { exact: selectedVideo } } : true,
-        audio: selectedAudio ? { deviceId: { exact: selectedAudio } } : true
-      });
-
-      setMediaStream(finalStream);
       setCameraPermission('granted');
       setMicrophonePermission('granted');
+      setIsCameraOn(true);
+      setMediaStream(stream);
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = finalStream;
-      }
+      // Now that we have permission, enumerate the devices
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audio = devices.filter(d => d.kind === 'audioinput');
+      const video = devices.filter(d => d.kind === 'videoinput');
+      setAudioDevices(audio);
+      setVideoDevices(video);
 
-      // Refresh device list after getting permissions
-      const audioDevices = await Room.getLocalDevices("audioinput");
-      const videoDevices = await Room.getLocalDevices("videoinput");
+      if (audio.length > 0 && !selectedAudio) setSelectedAudio(audio[0].deviceId);
+      if (video.length > 0 && !selectedVideo) setSelectedVideo(video[0].deviceId);
       
-      setAudioDevices(audioDevices);
-      setVideoDevices(videoDevices);
-      
-      // Set default devices if none selected
-      if (!selectedAudio && audioDevices.length > 0) {
-        setSelectedAudio(audioDevices[0].deviceId);
-      }
-      if (!selectedVideo && videoDevices.length > 0) {
-        setSelectedVideo(videoDevices[0].deviceId);
-      }
-      
-    } catch (err) {
-      console.error("Permission denied or error:", err);
-      setCameraPermission('denied');
-      setMicrophonePermission('denied');
+    } catch (e) {
+        console.error("Permission denied or no devices found:", e);
+        if(e instanceof DOMException && (e.name === "NotAllowedError" || e.name === "PermissionDeniedError")) {
+            setCameraPermission('denied');
+            setMicrophonePermission('denied');
+        }
     } finally {
-      setIsRequestingPermissions(false);
+        setIsRequestingPermissions(false);
     }
   };
 
-  const toggleCamera = () => {
-    if (mediaStream) {
-      const videoTracks = mediaStream.getVideoTracks();
-      videoTracks.forEach(track => {
-        track.enabled = !isCameraOn;
+  useEffect(() => {
+    // Cleanup stream on component unmount
+    return () => {
+      mediaStream?.getTracks().forEach(track => track.stop());
+    };
+  }, [mediaStream]);
+
+  useEffect(() => {
+    if (mediaStream && videoRef.current) {
+      videoRef.current.srcObject = mediaStream;
+    }
+  }, [mediaStream]);
+
+  const toggleMediaTrack = (type: 'audio' | 'video') => {
+      if (!mediaStream) return;
+      const tracks = type === 'video' ? mediaStream.getVideoTracks() : mediaStream.getAudioTracks();
+      tracks.forEach(track => {
+          track.enabled = !track.enabled;
+          if (type === 'video') setIsCameraOn(track.enabled);
+          if (type === 'audio') setIsMicOn(track.enabled);
       });
-      setIsCameraOn(!isCameraOn);
-    }
   };
 
-  const toggleMicrophone = () => {
-    if (mediaStream) {
-      const audioTracks = mediaStream.getAudioTracks();
-      audioTracks.forEach(track => {
-        track.enabled = !isMicOn;
-      });
-      setIsMicOn(!isMicOn);
-    }
-  };
+  const changeDevice = async (type: 'audio' | 'video', deviceId: string) => {
+    if (type === 'audio') setSelectedAudio(deviceId);
+    if (type === 'video') setSelectedVideo(deviceId);
 
-  const changeVideoDevice = async (deviceId: string) => {
-    setSelectedVideo(deviceId);
-    if (mediaStream) {
-      // Stop current stream
-      mediaStream.getTracks().forEach(track => track.stop());
-      
-      // Start new stream with selected device
-      try {
+    mediaStream?.getTracks().forEach(track => track.stop());
+
+    try {
         const newStream = await navigator.mediaDevices.getUserMedia({
-          video: { deviceId: { exact: deviceId } },
-          audio: { deviceId: selectedAudio ? { exact: selectedAudio } : undefined }
+            video: { deviceId: { exact: type === 'video' ? deviceId : selectedVideo } },
+            audio: { deviceId: { exact: type === 'audio' ? deviceId : selectedAudio } }
         });
-        
         setMediaStream(newStream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = newStream;
-        }
-      } catch (err) {
-        console.error("Failed to change video device:", err);
-      }
-    }
-  };
+        // Preserve on/off state
+        newStream.getVideoTracks().forEach(t => t.enabled = isCameraOn);
+        newStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
 
-  const changeAudioDevice = async (deviceId: string) => {
-    setSelectedAudio(deviceId);
-    if (mediaStream) {
-      // Stop current stream
-      mediaStream.getTracks().forEach(track => track.stop());
-      
-      // Start new stream with selected device
-      try {
-        const newStream = await navigator.mediaDevices.getUserMedia({
-          video: { deviceId: selectedVideo ? { exact: selectedVideo } : undefined },
-          audio: { deviceId: { exact: deviceId } }
-        });
-        
-        setMediaStream(newStream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = newStream;
-        }
-      } catch (err) {
-        console.error("Failed to change audio device:", err);
-      }
+    } catch (err) {
+        console.error(`Failed to switch ${type} device:`, err);
     }
   };
 
   const handleJoinSession = async () => {
     if (!session || !user) return;
-
-    try {
-      // Join the session
-      const response = await fetch(`/api/sessions/${session.id}/participants`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id,
-          role: "GUEST",
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to join session");
-      }
-
-      // Stop media stream before redirecting
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-      }
-
-      // Redirect to the session with device preferences
-      const sessionUrl = new URL(`/session/${session.id}`, window.location.origin);
-      sessionUrl.searchParams.set('audioDevice', selectedAudio);
-      sessionUrl.searchParams.set('videoDevice', selectedVideo);
-      sessionUrl.searchParams.set('cameraEnabled', isCameraOn.toString());
-      sessionUrl.searchParams.set('micEnabled', isMicOn.toString());
-      
-      router.push(sessionUrl.toString());
-    } catch (err) {
-      setError("Failed to join session");
-    }
+    mediaStream?.getTracks().forEach(track => track.stop());
+    const params = new URLSearchParams({
+        audioDevice: selectedAudio,
+        videoDevice: selectedVideo,
+        cameraEnabled: String(isCameraOn),
+        micEnabled: String(isMicOn),
+    });
+    router.push(`/session/${session.id}?${params.toString()}`);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto"></div>
-          <p className="text-white">Loading session...</p>x
-        </div>
+      <div className="min-h-screen bg-[#111111] flex items-center justify-center text-white">
+        <div className="w-8 h-8 border-4 border-gray-700 border-t-white rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (error || !session) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-2xl border border-gray-200 p-8">
-          <div className="text-center space-y-6">
-            <div className="text-6xl">❌</div>
-            <h1 className="text-2xl font-light text-black">Session Not Found</h1>
-            <p className="text-gray-600">
-              {error || "This session link is invalid or has expired."}
-            </p>
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="w-full py-3 px-4 font-light transition-colors duration-200 text-white hover:opacity-90"
-              style={{ backgroundColor: '#9671ff' }}
-            >
-              Go to Dashboard
-            </button>
-          </div>
+      <div className="min-h-screen bg-[#111111] flex items-center justify-center p-4">
+        <div className="bg-[#1C1C1C] border border-gray-700 rounded-lg p-8 text-center text-white max-w-sm">
+          <h2 className="text-2xl font-bold mb-4">Session Not Found</h2>
+          <p className="text-gray-400">{error || "The session link may be invalid or expired."}</p>
         </div>
       </div>
     );
   }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-2xl border border-gray-200 p-8">
-          <div className="text-center space-y-6">
-            <div className="text-6xl">🔐</div>
-            <h1 className="text-2xl font-light text-black">Sign In Required</h1>
-            <p className="text-gray-600">
-              Please sign in to join this session.
-            </p>
-            <button
-              onClick={() => {
-                const authUrl = new URL("/auth", window.location.origin);
-                authUrl.searchParams.set("returnTo", `/setup/${token}`);
-                router.push(authUrl.toString());
-              }}
-              className="w-full py-3 px-4 font-light transition-colors duration-200 text-white hover:opacity-90"
-              style={{ backgroundColor: '#9671ff' }}
-            >
-              Sign In
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const canJoin = cameraPermission === 'granted' && microphonePermission === 'granted';
+  
+  const hasPermissions = cameraPermission === 'granted' && microphonePermission === 'granted';
 
   return (
-    <div className="min-h-screen bg-black">
-      {/* Header */}
-      <div className="border-b border-gray-800 bg-black/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 lg:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#9671ff' }}>
-              <Video className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-white">Podstore</span>
-          </div>
-          <div className="text-white text-sm">
-            {session.host.name}'s Studio
-          </div>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 lg:px-6 py-12">
-        <div className="max-w-4xl mx-auto">
-          {/* Title */}
-          <div className="text-center mb-8">
-            <p className="text-gray-400 mb-2">You're about to join {session.host.name}'s Studio</p>
-            <h1 className="text-3xl font-bold text-white mb-4">Let's check your cam and mic</h1>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Left side - Video Preview */}
-            <div className="space-y-6">
-              <div className="bg-gray-900 rounded-xl border border-gray-800 p-6 aspect-video relative overflow-hidden">
-                {canJoin ? (
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover rounded-lg"
-                    style={{ display: isCameraOn ? 'block' : 'none' }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="text-center space-y-4">
-                      <VideoOff className="w-16 h-16 text-gray-500 mx-auto" />
-                      <p className="text-gray-400">Camera preview will appear here</p>
-                    </div>
-                  </div>
-                )}
-                
-                {!isCameraOn && canJoin && (
-                  <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
-                    <div className="text-center space-y-4">
-                      <VideoOff className="w-16 h-16 text-gray-500 mx-auto" />
-                      <p className="text-gray-400">Camera is off</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* User info overlay */}
-                <div className="absolute bottom-4 left-4 bg-black/70 px-3 py-1 rounded-lg">
-                  <span className="text-white text-sm font-medium">
-                    {user.user_metadata?.full_name || user.email?.split('@')[0] || 'You'}
-                  </span>
-                  <span className="text-gray-400 text-sm ml-2">Host</span>
-                </div>
+    <div className="min-h-screen bg-[#111111] text-white flex items-center justify-center p-4 sm:p-8">
+      <div className="w-full max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          {/* Left Column: Setup Controls */}
+          <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
+            <p className="text-gray-400 text-sm">You're about to join {session.host.name}'s Studio</p>
+            <h1 className="text-4xl font-bold mt-2 mb-8">Let's check your cam and mic</h1>
+            
+            <div className="w-full max-w-sm space-y-4">
+              <div className="bg-[#2C2C2C] rounded-md p-3 flex items-center justify-between">
+                <span className="font-medium">{user?.user_metadata?.name || user?.email}</span>
+                <span className="text-xs bg-[#444444] text-gray-300 px-2 py-1 rounded">Host</span>
               </div>
 
-              {/* Device Controls */}
-              <div className="flex items-center justify-center space-x-4">
+              <div className="flex space-x-2">
                 <button
-                  onClick={toggleMicrophone}
-                  disabled={!canJoin}
-                  className={`p-3 rounded-lg transition-colors ${
-                    isMicOn 
-                      ? 'bg-gray-800 hover:bg-gray-700 text-white' 
-                      : 'bg-red-600 hover:bg-red-700 text-white'
-                  } disabled:opacity-50`}
+                  onClick={() => setIsUsingHeadphones(false)}
+                  className={`w-full py-3 rounded-md text-sm font-medium transition-colors ${
+                    !isUsingHeadphones ? 'bg-[#4A4A4A] text-white' : 'bg-[#2C2C2C] text-gray-400 hover:bg-[#3a3a3a]'
+                  }`}
                 >
-                  {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                  I am not using headphones
                 </button>
-                
                 <button
-                  onClick={toggleCamera}
-                  disabled={!canJoin}
-                  className={`p-3 rounded-lg transition-colors ${
-                    isCameraOn 
-                      ? 'bg-gray-800 hover:bg-gray-700 text-white' 
-                      : 'bg-red-600 hover:bg-red-700 text-white'
-                  } disabled:opacity-50`}
+                  onClick={() => setIsUsingHeadphones(true)}
+                  className={`w-full py-3 rounded-md text-sm font-medium transition-colors ${
+                    isUsingHeadphones ? 'bg-[#8A63D2] text-white' : 'bg-[#2C2C2C] text-gray-400 hover:bg-[#3a3a3a]'
+                  }`}
                 >
-                  {isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                  I am using headphones
                 </button>
               </div>
-            </div>
 
-            {/* Right side - Setup Options */}
-            <div className="space-y-6">
-              {/* Camera Setup */}
-              <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-                <h3 className="text-white font-semibold mb-4 flex items-center">
-                  <Video className="w-5 h-5 mr-2" />
-                  Camera setup
-                </h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">Camera</label>
-                    <select 
-                      value={selectedVideo} 
-                      onChange={(e) => changeVideoDevice(e.target.value)}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    >
-                      {videoDevices.map((device) => (
-                        <option key={device.deviceId} value={device.deviceId}>
-                          {device.label || `Camera ${device.deviceId.slice(0, 8)}...`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-white">Camera permission</span>
-                    <div className="flex items-center space-x-2">
-                      {cameraPermission === 'granted' ? (
-                        <Check className="w-5 h-5 text-green-500" />
-                      ) : cameraPermission === 'denied' ? (
-                        <X className="w-5 h-5 text-red-500" />
-                      ) : (
-                        <div className="w-5 h-5 border-2 border-gray-400 border-t-white rounded-full animate-spin" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Audio Setup */}
-              <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-                <h3 className="text-white font-semibold mb-4 flex items-center">
-                  <Mic className="w-5 h-5 mr-2" />
-                  Audio setup
-                </h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">Microphone</label>
-                    <select 
-                      value={selectedAudio} 
-                      onChange={(e) => changeAudioDevice(e.target.value)}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    >
-                      {audioDevices.map((device) => (
-                        <option key={device.deviceId} value={device.deviceId}>
-                          {device.label || `Microphone ${device.deviceId.slice(0, 8)}...`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-white">Microphone permission</span>
-                    <div className="flex items-center space-x-2">
-                      {microphonePermission === 'granted' ? (
-                        <Check className="w-5 h-5 text-green-500" />
-                      ) : microphonePermission === 'denied' ? (
-                        <X className="w-5 h-5 text-red-500" />
-                      ) : (
-                        <div className="w-5 h-5 border-2 border-gray-400 border-t-white rounded-full animate-spin" />
-                      )}
-                    </div>
-                  </div>
-
-                 
-                </div>
-              </div>
-
-              {/* Permission Request */}
-              {!canJoin && (
-                <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-                  <h3 className="text-white font-semibold mb-4">Allow access</h3>
-                  <p className="text-gray-400 text-sm mb-4">
-                    To join this session, you need to allow camera and microphone access.
-                  </p>
+              {hasPermissions ? (
                   <Button
-                    onClick={requestPermissions}
-                    disabled={isRequestingPermissions}
-                    className="w-full text-white transition-all hover:opacity-90 disabled:opacity-50"
-                    style={{ backgroundColor: '#9671ff' }}
+                    onClick={handleJoinSession}
+                    className="w-full py-6 text-base font-bold bg-[#8A63D2] hover:bg-[#7955b8] transition-colors"
                   >
-                    {isRequestingPermissions ? "Requesting access..." : "Allow all access"}
+                    Join studio
                   </Button>
+              ) : (
+                  <Button
+                    onClick={requestPermissionsAndGetDevices}
+                    disabled={isRequestingPermissions || cameraPermission === 'denied'}
+                    className="w-full py-6 text-base font-bold bg-[#8A63D2] hover:bg-[#7955b8] transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
+                  >
+                    {isRequestingPermissions ? 'Requesting...' : (cameraPermission === 'denied' ? 'Permissions Blocked' : 'Allow access')}
+                  </Button>
+              )}
+
+
+              <p className="text-xs text-gray-500 text-center">
+                You are joining as a host. <span className="text-[#8A63D2] cursor-pointer hover:underline">Join as a producer</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Right Column: Video Preview & Device Selection */}
+          <div className="w-full max-w-md mx-auto lg:max-w-none">
+            <div className="relative aspect-video bg-[#2C2C2C] rounded-lg flex items-center justify-center overflow-hidden">
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className={`w-full h-full object-cover transition-opacity duration-300 ${isCameraOn && mediaStream ? 'opacity-100' : 'opacity-0'}`}
+              />
+              {(!isCameraOn || !mediaStream) && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+                  <div className="flex space-x-4">
+                    <div className={`p-2 rounded-full ${cameraPermission === 'denied' ? 'bg-red-500/20' : 'bg-gray-500/20'}`}>
+                      <VideoOff className={`${cameraPermission === 'denied' ? 'text-red-400' : 'text-gray-400'}`} size={20} />
+                    </div>
+                    <div className={`p-2 rounded-full ${microphonePermission === 'denied' ? 'bg-red-500/20' : 'bg-gray-500/20'}`}>
+                      <MicOff className={`${microphonePermission === 'denied' ? 'text-red-400' : 'text-gray-400'}`} size={20} />
+                    </div>
+                  </div>
+                  <p className="mt-4 text-sm">
+                    {cameraPermission === 'denied' ? 'Camera access is denied' : 'Camera is off'}
+                  </p>
                 </div>
               )}
-
-              {/* Join Button */}
-              {canJoin && (
-                <Button
-                  onClick={handleJoinSession}
-                  className="w-full text-white transition-all hover:opacity-90 py-6 text-lg"
-                  style={{ backgroundColor: '#9671ff' }}
-                >
-                  Join session
-                </Button>
-              )}
-
-             
+            </div>
+            <div className="space-y-2 mt-4">
+                <DeviceSelector 
+                    icon={<Video size={16} />}
+                    label="Camera"
+                    selectedDeviceId={selectedVideo}
+                    devices={videoDevices}
+                    onChange={(id) => changeDevice('video', id)}
+                    permission={cameraPermission}
+                />
+                <DeviceSelector 
+                    icon={<Mic size={16} />}
+                    label="Microphone"
+                    selectedDeviceId={selectedAudio}
+                    devices={audioDevices}
+                    onChange={(id) => changeDevice('audio', id)}
+                    permission={microphonePermission}
+                />
             </div>
           </div>
         </div>
       </div>
     </div>
   );
-} 
+}
+
+// Custom Dropdown Component for Device Selection
+const DeviceSelector = ({ icon, label, selectedDeviceId, devices, onChange, permission }: {
+    icon: React.ReactNode;
+    label: string;
+    selectedDeviceId: string;
+    devices: MediaDeviceInfo[];
+    onChange: (id: string) => void;
+    permission: 'granted' | 'denied' | 'prompt' | 'checking';
+}) => {
+    const selectedDevice = devices.find(d => d.deviceId === selectedDeviceId);
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleSelect = (id: string) => {
+        onChange(id);
+        setIsOpen(false);
+    }
+
+    return (
+        <div className="relative" ref={dropdownRef}>
+            <button 
+                onClick={() => setIsOpen(!isOpen)}
+                disabled={permission !== 'granted'}
+                className="w-full bg-[#2C2C2C] rounded-md p-3 flex items-center justify-between text-left disabled:opacity-50"
+            >
+                <div className="flex items-center space-x-3">
+                    <div className="text-gray-400">{icon}</div>
+                    <span className="text-sm font-medium truncate">
+                        {permission !== 'granted' ? `Allow ${label} Access` : (selectedDevice?.label || `No ${label} Found`)}
+                    </span>
+                </div>
+                {permission === 'granted' && <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />}
+            </button>
+            {isOpen && permission === 'granted' && devices.length > 0 && (
+                <div className="absolute bottom-full mb-2 w-full bg-[#3a3a3a] border border-gray-600 rounded-md z-10 p-1">
+                    {devices.map(device => (
+                        <button
+                            key={device.deviceId}
+                            onClick={() => handleSelect(device.deviceId)}
+                            className="w-full text-left px-3 py-2 text-sm rounded hover:bg-[#4A4A4A] flex items-center justify-between"
+                        >
+                            <span className="truncate">{device.label}</span>
+                            {device.deviceId === selectedDeviceId && <Check size={14} />}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}

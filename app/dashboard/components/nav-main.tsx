@@ -21,29 +21,29 @@ export function NavMain() {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+      <SidebarGroupLabel className="text-xs">Navigation</SidebarGroupLabel>
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton tooltip="Create Session" asChild>
-            <Link href={`/dashboard/create-session`} className="cursor-pointer">
-              <Video />
-              <span>Create Session</span>
+          <SidebarMenuButton tooltip="Create Session" asChild className="h-auto py-4 ">
+            <Link href={`/dashboard/create-session`} className="cursor-pointer flex flex-col items-center gap-2">
+              <Video className="w-10 h-10" />
+              <span className="text-xs text-center leading-tight">Create Session</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
         <SidebarMenuItem>
-          <SidebarMenuButton tooltip="Recordings" asChild>
-            <Link href="/dashboard/recordings">
-              <Mic />
-              <span>Recordings</span>
+          <SidebarMenuButton tooltip="Recordings" asChild className="h-auto py-4">
+            <Link href="/dashboard/recordings" className="flex flex-col items-center gap-2">
+              <Mic className="w-10 h-10" />
+              <span className="text-xs text-center leading-tight">Recordings</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
         <SidebarMenuItem>
-          <SidebarMenuButton tooltip="Profile" asChild>
-            <Link href="/dashboard/profile">
-              <UserCircle />
-              <span>Profile</span>
+          <SidebarMenuButton tooltip="Profile" asChild className="h-auto py-4">
+            <Link href="/dashboard/profile" className="flex flex-col items-center gap-2">
+              <UserCircle className="w-10 h-10" />
+              <span className="text-xs text-center leading-tight">Profile</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>

@@ -69,9 +69,9 @@ export default function CreateSessionPage() {
         setSuccess(true);
         setError("");
 
-        // Redirect to the session page after a brief delay
+        // Redirect to the setup page after a brief delay
         setTimeout(() => {
-          router.push(`/session/${data.sessionId || sessionId}`);
+          router.push(`/setup/${data.sessionId || sessionId}`);
         }, 1500);
       } else {
         const errorData = await response.json();
@@ -90,8 +90,6 @@ export default function CreateSessionPage() {
     return (
       <div className="flex flex-1 flex-col">
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-white/10 px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -112,16 +110,16 @@ export default function CreateSessionPage() {
           </Breadcrumb>
         </header>
 
-        <div className="flex-1 flex items-center justify-center p-4">
-          <div className="text-center space-y-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto">
-              <Mic className="w-8 h-8 text-white" />
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center space-y-8 max-w-md">
+            <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto shadow-lg">
+              <Mic className="w-10 h-10 text-primary-foreground" />
             </div>
-            <div>
-              <h2 className="text-2xl font-semibold text-white mb-2">
+            <div className="space-y-4">
+              <h2 className="text-3xl font-bold text-foreground">
                 Session Created!
               </h2>
-              <p className="text-gray-400">Redirecting to your session...</p>
+              <p className="text-muted-foreground text-lg">Redirecting to your session...</p>
             </div>
           </div>
         </div>
@@ -132,9 +130,7 @@ export default function CreateSessionPage() {
   return (
     <div className="flex flex-1 flex-col">
       {/* Header with Breadcrumb */}
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b border-white/10 px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b border-white/10 px-4 ">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -156,112 +152,112 @@ export default function CreateSessionPage() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 p-6">
-        <div className="max-w-2xl mx-auto">
+      <div className="flex-1 p-8">
+        <div className="max-w-3xl mx-auto">
           {/* Back Button */}
           <Button
             variant="ghost"
             onClick={() => router.back()}
-            className="text-gray-400 hover:text-white hover:bg-white/5 mb-8 -ml-3"
+            className="text-muted-foreground hover:text-foreground hover:bg-accent mb-8"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
 
           {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">
+          <div className="mb-12">
+            <h1 className="text-4xl font-bold text-foreground mb-4">
               Create New Session
             </h1>
-            <p className="text-gray-400">
+            <p className="text-muted-foreground text-lg">
               Start a new recording session for your podcast or meeting.
             </p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Session Title */}
-            <div>
-              <label
-                htmlFor="title"
-                className="block text-sm font-medium text-gray-300 mb-2"
-              >
-                Session Title *
-              </label>
-              <input
-                id="title"
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter session title"
-                maxLength={100}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                disabled={isLoading}
-              />
-              <div className="flex justify-between items-center mt-1">
-                <div></div>
-                <span className="text-xs text-gray-500">
-                  {title.length}/100
-                </span>
+          {/* Form Container */}
+          <div className="bg-card rounded-2xl border border-border p-8 shadow-lg">
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Session Title */}
+              <div className="space-y-3">
+                <label
+                  htmlFor="title"
+                  className="block text-sm font-semibold text-foreground"
+                >
+                  Session Title *
+                </label>
+                <input
+                  id="title"
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Enter session title"
+                  maxLength={100}
+                  className="w-full px-4 py-4 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all text-base"
+                  disabled={isLoading}
+                />
+                <div className="flex justify-end">
+                  <span className="text-xs text-muted-foreground">
+                    {title.length}/100
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {/* Session Description */}
-            <div>
-              <label
-                htmlFor="description"
-                className="block text-sm font-medium text-gray-300 mb-2"
-              >
-                Description
-                <span className="text-gray-500 ml-1">(optional)</span>
-              </label>
-              <textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional session description"
-                maxLength={500}
-                rows={4}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
-                disabled={isLoading}
-              />
-              <div className="flex justify-between items-center mt-1">
-                <div></div>
-                <span className="text-xs text-gray-500">
-                  {description.length}/500
-                </span>
+              {/* Session Description */}
+              <div className="space-y-3">
+                <label
+                  htmlFor="description"
+                  className="block text-sm font-semibold text-foreground"
+                >
+                  Description
+                  <span className="text-muted-foreground ml-1 font-normal">(optional)</span>
+                </label>
+                <textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Optional session description"
+                  maxLength={500}
+                  rows={4}
+                  className="w-full px-4 py-4 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all resize-none text-base"
+                  disabled={isLoading}
+                />
+                <div className="flex justify-end">
+                  <span className="text-xs text-muted-foreground">
+                    {description.length}/500
+                  </span>
+                </div>
               </div>
-            </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-                <p className="text-red-400 text-sm">{error}</p>
+              {/* Error Message */}
+              {error && (
+                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <p className="text-destructive text-sm">{error}</p>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <div className="flex justify-end pt-4">
+                <Button
+                  type="submit"
+                  disabled={!title.trim() || isLoading}
+                  className="bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground px-8 py-3 text-base font-medium disabled:cursor-not-allowed transition-all min-w-[160px]"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
+                      <span>Creating...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <Mic className="w-4 h-4" />
+                      <span>Create Session</span>
+                    </div>
+                  )}
+                </Button>
               </div>
-            )}
-
-            {/* Submit Button */}
-            <div className="flex items-center justify-between pt-4">
-              <div></div>
-              <Button
-                type="submit"
-                disabled={!title.trim() || isLoading}
-                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-600 disabled:to-gray-600 text-white px-8 py-3 disabled:cursor-not-allowed transition-all"
-              >
-                {isLoading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Creating...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <Mic className="w-4 h-4" />
-                    <span>Create Session</span>
-                  </div>
-                )}
-              </Button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
     </div>

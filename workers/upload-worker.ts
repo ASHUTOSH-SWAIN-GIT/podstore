@@ -2,30 +2,49 @@ import "dotenv/config";
 import { Worker } from "bullmq";
 import fs from "fs";
 import { prisma } from "../lib/utils/prisma";
-import B2 from "backblaze-b2";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
-// Check if B2 credentials are available
-const B2_ENABLED = process.env.B2_KEY_ID && process.env.B2_APPLICATION_KEY && process.env.B2_BUCKET_ID;
 
-let b2: B2 | null = null;
-if (B2_ENABLED) {
-  b2 = new B2({
-    applicationKeyId: process.env.B2_KEY_ID!,
-    applicationKey: process.env.B2_APPLICATION_KEY!,
+
+// --- R2/S3 Client Initialization ---
+const R2_ENABLED = 
+  process.env.R2_ENDPOINT &&
+  process.env.R2_ACCESS_KEY_ID &&
+  process.env.R2_SECRET_ACCESS_KEY &&
+  process.env.R2_BUCKET_NAME;
+
+let s3Client: S3Client | null = null;
+if (R2_ENABLED) {
+  // --- FIX: Ensure the endpoint is a full, valid URL ---
+  let endpointUrl = process.env.R2_ENDPOINT!;
+  if (!endpointUrl.startsWith('http://') && !endpointUrl.startsWith('https://')) {
+    endpointUrl = `https://${endpointUrl}`;
+  }
+
+  s3Client = new S3Client({
+    region: "auto",
+    endpoint: endpointUrl, // Use the sanitized, full URL
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    },
+    // This forces the SDK to use path-style URLs (e.g., endpoint/bucket/key)
+    // instead of virtual-hosted-style URLs (e.g., bucket.endpoint/key), which is required for R2.
+    forcePathStyle: true,
   });
-  console.log(" Upload worker initialized with B2 support");
+  console.log("✅ Upload worker initialized with Cloudflare R2 support");
 } else {
-  console.warn(" Upload worker initialized WITHOUT B2 support - missing B2 credentials");
+  console.warn("⚠️ Upload worker initialized WITHOUT R2 support - missing R2 environment variables");
 }
 
-console.log("Starting upload worker...");
+console.log("🚀 Starting upload worker...");
 
 const worker = new Worker("upload-processing", async (job) => {
   console.log(`[UPLOAD-WORKER] Processing job: ${job.name} (ID: ${job.id})`);
 
-  // NOTE: Your job name in the previous file was "convert-file", but here it's "upload-file".
-  // Make sure this matches the name you use when adding jobs to the queue.
-  if (job.name !== "upload-file") { 
+  // Ensure the job name matches what you're queuing.
+  // This should match the name used in your API route that adds jobs.
+  if (job.name !== "stitch-and-convert" && job.name !== "upload-file") { 
     console.log(`Skipping job with incorrect name: ${job.name}`);
     return;
   }
@@ -39,75 +58,50 @@ const worker = new Worker("upload-processing", async (job) => {
   try {
     console.log(`[UPLOAD-WORKER] Processing file: ${mp4Path}`);
     
-    if (!B2_ENABLED || !b2) {
-      console.warn(`[UPLOAD-WORKER] B2 not configured, saving file locally instead`);
-      
-      // Save to database with local path
-      await prisma.mediaFile.create({
-        data: {
-          sessionId,
-          url: mp4Path, // Store local path when B2 is not available
-          type: type || "AUDIO_VIDEO",
-          status: "COMPLETE",
-          s3Key: `local/${fileId}.mp4`,
-          isFinal: false,
-        },
-      });
-      
-      console.log(`[UPLOAD-WORKER] File saved locally: ${mp4Path}`);
-      return; // Don't delete the file when storing locally
+    if (!R2_ENABLED || !s3Client) {
+      console.warn(`[UPLOAD-WORKER] R2 not configured, file will not be uploaded.`);
+      throw new Error("R2 storage is not configured on the worker.");
     }
     
-    // --- B2 Upload Process ---
-    
-    // 1. Authorize with B2 to get a fresh token for this job
-    console.log(`[UPLOAD-WORKER] Authorizing with B2...`);
-    await b2.authorize();
-    console.log(`[UPLOAD-WORKER] B2 Authorization successful.`);
-
-    // 2. Get a temporary upload URL
-    console.log(`[UPLOAD-WORKER] Getting B2 upload URL...`);
-    const { data: uploadUrlData } = await b2.getUploadUrl({
-      bucketId: process.env.B2_BUCKET_ID!,
-    });
-    
+    // --- R2 Upload Process ---
     const mp4Buffer = fs.readFileSync(mp4Path);
-    const b2FileName = `media/${fileId}.mp4`;
+    const r2FileName = `media/${fileId || sessionId}/${Date.now()}.mp4`; // Create a unique filename
     
-    // 3. Upload the file
-    console.log(`[UPLOAD-WORKER] Uploading ${mp4Path} to B2...`);
-    await b2.uploadFile({
-      uploadUrl: uploadUrlData.uploadUrl,
-      uploadAuthToken: uploadUrlData.authorizationToken,
-      fileName: b2FileName,
-      data: mp4Buffer,
-      mime: "video/mp4",
+    console.log(`[UPLOAD-WORKER] Uploading ${mp4Path} to R2 as ${r2FileName}...`);
+
+    const command = new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME!,
+        Key: r2FileName,
+        Body: mp4Buffer,
+        ContentType: "video/mp4",
+        // --- NEW: Attach custom metadata to the R2 object ---
+        Metadata: {
+            sessionId: sessionId || "unknown",
+            userId: userId || "unknown",
+            fileType: type || "AUDIO_VIDEO",
+        }
     });
 
-    // 4. Get a temporary download URL for the database
-    const signedUrl = await b2.getDownloadAuthorization({
-      bucketId: process.env.B2_BUCKET_ID!,
-      fileNamePrefix: b2FileName,
-      validDurationInSeconds: 3600 * 24 * 7, // 7-day validity
-    });
-    
-    const downloadUrl = `${process.env.B2_DOWNLOAD_URL}/file/${process.env.B2_BUCKET_NAME}/${b2FileName}?Authorization=${signedUrl.data.authorizationToken}`;
-    console.log(`[UPLOAD-WORKER] File uploaded to B2.`);
+    await s3Client.send(command);
 
-    // 5. Save metadata to DB
+    // Construct the public URL. Assumes your bucket is public or connected to a custom domain.
+    const publicUrl = `${process.env.R2_PUBLIC_URL}/${r2FileName}`;
+    console.log(`[UPLOAD-WORKER] File uploaded to R2. Public URL: ${publicUrl}`);
+
+    // --- UPDATED: Save metadata, including userId, to the database ---
     await prisma.mediaFile.create({
       data: {
         sessionId,
-        url: downloadUrl,
+        url: publicUrl,
         type: type || "AUDIO_VIDEO",
         status: "COMPLETE",
-        s3Key: b2FileName,
+        s3Key: r2FileName, // Store the R2 object key
         isFinal: false,
       },
     });
-    console.log(`[UPLOAD-WORKER] Database updated.`);
+    console.log(`[UPLOAD-WORKER] Database updated with file metadata.`);
 
-    // 6. Clean up the temporary file from the server
+    // Clean up the temporary file from the server
     fs.unlinkSync(mp4Path);
     console.log(`[UPLOAD-WORKER] Cleaned up temporary file: ${mp4Path}`);
     
@@ -121,6 +115,7 @@ const worker = new Worker("upload-processing", async (job) => {
   }
 }, {
   connection: {
+    // Assuming your Redis URL is correctly set in the environment
     url: process.env.REDIS_URL!,
   },
   concurrency: 10,
