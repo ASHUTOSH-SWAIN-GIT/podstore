@@ -23,6 +23,7 @@ export const useSessionControls = () => {
   const [room, setRoom] = useState<Room | null>(null);
   const [liveParticipantCount, setLiveParticipantCount] = useState(0);
   const [recordingError, setRecordingError] = useState<string | null>(null);
+  const [participantId, setParticipantId] = useState<string | null>(null);
 
   const localVideoRef = useRef<HTMLDivElement>(null);
   const remoteVideosRef = useRef<HTMLDivElement>(null);
@@ -33,6 +34,7 @@ export const useSessionControls = () => {
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const chunkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isStoppingRef = useRef<boolean>(false); // Flag to track if we're stopping
+  const chunkIndexRef = useRef<number>(0); // Track chunk index
 
   const router = useRouter();
 
@@ -162,6 +164,7 @@ export const useSessionControls = () => {
     try {
       setRecordingError(null);
       isStoppingRef.current = false; // Reset stopping flag when starting
+      chunkIndexRef.current = 0; // Reset chunk index
       
       // Get user media for recording
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -176,28 +179,35 @@ export const useSessionControls = () => {
         audioBitsPerSecond: 128000,  // 128 kbps audio
       });
 
-      let chunkCount = 0;
-
       mediaRecorderRef.current.ondataavailable = async (e) => {
         console.log(`Data available - Size: ${e.data.size}, Type: ${e.data.type}`);
         
         if (e.data.size > 0) {
-          chunkCount++;
+          chunkIndexRef.current++;
           const chunkStartTime = performance.now();
           const isFinalChunk = isStoppingRef.current;
           
-          const file = new File([e.data], `chunk-${chunkCount}-${Date.now()}.webm`, { 
+          const file = new File([e.data], `chunk-${chunkIndexRef.current}-${Date.now()}.webm`, { 
             type: "video/webm" 
           });
           
           console.log(`Created file - Size: ${file.size}, Name: ${file.name}, Final: ${isFinalChunk}`);
           
           try {
-            await UploadChunkToServer({ file, sessionId, userId, isFinal: isFinalChunk });
+            // Use userId as participantId if no specific participantId is set
+            const currentParticipantId = participantId || userId;
+            await UploadChunkToServer({ 
+              file, 
+              sessionId, 
+              userId, 
+              participantId: currentParticipantId,
+              chunkIndex: chunkIndexRef.current,
+              isFinal: isFinalChunk 
+            });
             const uploadTime = performance.now() - chunkStartTime;
-            console.log(`Chunk ${chunkCount}: ${(file.size / 1024 / 1024).toFixed(2)}MB, ${uploadTime.toFixed(0)}ms, Final: ${isFinalChunk}`);
+            console.log(`Chunk ${chunkIndexRef.current}: ${(file.size / 1024 / 1024).toFixed(2)}MB, ${uploadTime.toFixed(0)}ms, Final: ${isFinalChunk}`);
           } catch (err) {
-            console.error(`Chunk ${chunkCount} upload error:`, err);
+            console.error(`Chunk ${chunkIndexRef.current} upload error:`, err);
             setRecordingError("Failed to upload recording chunk");
           }
         } else {

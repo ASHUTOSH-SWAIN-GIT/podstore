@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write .",
-    "worker": "concurrently \"npx tsx workers/mediaWorker.ts\" \"npx tsx workers/upload-worker.ts\""
+    "worker": "concurrently \"npx tsx workers/stitchWorker.ts\" \"npx tsx workers/mediaWorker.ts\" \"npx tsx workers/upload-worker.ts\""
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.848.0",

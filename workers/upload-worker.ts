@@ -1,10 +1,11 @@
+// lib/workers/uploadWorker.ts
+
 import "dotenv/config";
 import { Worker } from "bullmq";
 import fs from "fs";
 import { prisma } from "../lib/utils/prisma";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-
-
+import path from "path";
 
 // --- R2/S3 Client Initialization ---
 const R2_ENABLED = 
@@ -15,7 +16,6 @@ const R2_ENABLED =
 
 let s3Client: S3Client | null = null;
 if (R2_ENABLED) {
-  // --- FIX: Ensure the endpoint is a full, valid URL ---
   let endpointUrl = process.env.R2_ENDPOINT!;
   if (!endpointUrl.startsWith('http://') && !endpointUrl.startsWith('https://')) {
     endpointUrl = `https://${endpointUrl}`;
@@ -23,13 +23,11 @@ if (R2_ENABLED) {
 
   s3Client = new S3Client({
     region: "auto",
-    endpoint: endpointUrl, // Use the sanitized, full URL
+    endpoint: endpointUrl,
     credentials: {
       accessKeyId: process.env.R2_ACCESS_KEY_ID!,
       secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
     },
-    // This forces the SDK to use path-style URLs (e.g., endpoint/bucket/key)
-    // instead of virtual-hosted-style URLs (e.g., bucket.endpoint/key), which is required for R2.
     forcePathStyle: true,
   });
   console.log("✅ Upload worker initialized with Cloudflare R2 support");
@@ -37,35 +35,32 @@ if (R2_ENABLED) {
   console.warn("⚠️ Upload worker initialized WITHOUT R2 support - missing R2 environment variables");
 }
 
-console.log("🚀 Starting upload worker...");
+console.log("🚀 Starting Upload Worker...");
 
-const worker = new Worker("upload-processing", async (job) => {
-  console.log(`[UPLOAD-WORKER] Processing job: ${job.name} (ID: ${job.id})`);
-
-  // Ensure the job name matches what you're queuing.
-  // This should match the name used in your API route that adds jobs.
-  if (job.name !== "stitch-and-convert" && job.name !== "upload-file") { 
-    console.log(`Skipping job with incorrect name: ${job.name}`);
+// This worker listens to the "upload-processing" queue
+const worker = new Worker("upload-file", async (job) => {
+  // This worker now handles jobs from the conversion worker
+  if (job.name !== "upload-file") { 
+    console.log(`[UPLOAD-WORKER] Skipping job with incorrect name: ${job.name}`);
     return;
   }
 
-  const { mp4Path, sessionId, userId, type, fileId } = job.data;
+  const { mp4Path, sessionId, userId, type } = job.data;
+  console.log(`[UPLOAD-WORKER] Processing job ${job.id} for file: ${mp4Path}`);
   
   if (!mp4Path || !fs.existsSync(mp4Path)) {
       throw new Error(`MP4 file not found at path: ${mp4Path}`);
   }
 
   try {
-    console.log(`[UPLOAD-WORKER] Processing file: ${mp4Path}`);
-    
     if (!R2_ENABLED || !s3Client) {
-      console.warn(`[UPLOAD-WORKER] R2 not configured, file will not be uploaded.`);
       throw new Error("R2 storage is not configured on the worker.");
     }
     
     // --- R2 Upload Process ---
     const mp4Buffer = fs.readFileSync(mp4Path);
-    const r2FileName = `media/${fileId || sessionId}/${Date.now()}.mp4`; // Create a unique filename
+    // Create a unique filename for the final recording in R2
+    const r2FileName = `media/final/${sessionId}/${Date.now()}.mp4`; 
     
     console.log(`[UPLOAD-WORKER] Uploading ${mp4Path} to R2 as ${r2FileName}...`);
 
@@ -74,59 +69,90 @@ const worker = new Worker("upload-processing", async (job) => {
         Key: r2FileName,
         Body: mp4Buffer,
         ContentType: "video/mp4",
-        // --- NEW: Attach custom metadata to the R2 object ---
         Metadata: {
             sessionId: sessionId || "unknown",
             userId: userId || "unknown",
-            fileType: type || "AUDIO_VIDEO",
+            fileType: type || "AUDIO_VIDEO_FINAL",
         }
     });
 
     await s3Client.send(command);
 
-    // Construct the public URL. Assumes your bucket is public or connected to a custom domain.
     const publicUrl = `${process.env.R2_PUBLIC_URL}/${r2FileName}`;
     console.log(`[UPLOAD-WORKER] File uploaded to R2. Public URL: ${publicUrl}`);
+    console.log(`[UPLOAD-WORKER] Uploaded file size: ${(mp4Buffer.length / 1024 / 1024).toFixed(2)}MB`);
 
-    // --- UPDATED: Save metadata, including userId, to the database ---
+    // --- Save final metadata to the database ---
+    
+    // Ensure Participation Record Exists for MediaFile
+    let actualParticipantId = null;
+    
+    if (userId) {
+      // Check if a participation record exists for this user in this session
+      const existingParticipation = await prisma.participation.findFirst({
+        where: {
+          sessionId,
+          userId: userId,
+        },
+      });
+
+      if (!existingParticipation) {
+        // Create a participation record for this user in this session
+        console.log(`[UPLOAD-WORKER] Creating participation record for user ${userId} in session ${sessionId}`);
+        
+        const newParticipation = await prisma.participation.create({
+          data: {
+            userId: userId,
+            sessionId,
+            role: "HOST", // Default to HOST role for now
+          },
+        });
+        
+        actualParticipantId = newParticipation.id;
+        console.log(`[UPLOAD-WORKER] Created participation record with ID: ${actualParticipantId}`);
+      } else {
+        actualParticipantId = existingParticipation.id;
+        console.log(`[UPLOAD-WORKER] Found existing participation record with ID: ${actualParticipantId}`);
+      }
+    }
+
     await prisma.mediaFile.create({
       data: {
         sessionId,
+        participantId: actualParticipantId, // Use the actual participation ID or null
         url: publicUrl,
-        type: type || "AUDIO_VIDEO",
+        type: "AUDIO_VIDEO_FINAL",
         status: "COMPLETE",
-        s3Key: r2FileName, // Store the R2 object key
-        isFinal: false,
+        s3Key: r2FileName,
+        isFinal: true, // Mark this as the final, definitive recording
+        uploadedAt: new Date(),
       },
     });
-    console.log(`[UPLOAD-WORKER] Database updated with file metadata.`);
-
-    // Clean up the temporary file from the server
-    fs.unlinkSync(mp4Path);
-    console.log(`[UPLOAD-WORKER] Cleaned up temporary file: ${mp4Path}`);
+    console.log(`[UPLOAD-WORKER] Database updated with final media file metadata.`);
     
   } catch (err) {
     console.error(`[UPLOAD-WORKER] Job ${job.id} failed:`, err);
-    // Clean up the file even on failure to prevent filling up the disk
+    throw err; // Re-throw the error to mark the job as failed
+  } finally {
+    // Clean up the temporary MP4 file from the server
     if (fs.existsSync(mp4Path)) {
-        fs.unlinkSync(mp4Path);
+      fs.unlinkSync(mp4Path);
+      console.log(`[UPLOAD-WORKER] Cleaned up temporary file: ${mp4Path}`);
     }
-    throw err; // Re-throw the error to mark the job as failed in the queue
   }
 }, {
   connection: {
-    // Assuming your Redis URL is correctly set in the environment
     url: process.env.REDIS_URL!,
   },
   concurrency: 10,
 });
 
 worker.on('failed', async (job, err) => {
-  console.error(`[WORKER-EVENT] Job ${job?.id} failed: ${err.message}`);
+  console.error(`[UPLOAD-WORKER-FAILED] Job ${job?.id} failed with error: ${err.message}`);
 });
 
 worker.on('completed', (job) => {
-  console.log(`[WORKER-EVENT] Job ${job.id} has completed.`);
+  console.log(`[UPLOAD-WORKER-SUCCESS] Job ${job.id} completed successfully.`);
 });
 
-console.log("✅ Upload worker is ready and listening for jobs...");
+console.log("✅ Upload worker is ready and listening for jobs on 'upload-processing'.");

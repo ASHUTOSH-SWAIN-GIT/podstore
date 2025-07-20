@@ -21,9 +21,29 @@ export async function POST(req: NextRequest) {
     const participantId = formData.get("participantId")?.toString(); // Use participantId for better context
     const chunkIndex = parseInt(formData.get("chunkIndex")?.toString() || "0", 10);
     const isFinal = formData.get("isFinal")?.toString() === "true";
+    const userId = formData.get("userId")?.toString();
+
+    // Debug logging
+    console.log(`[B2-UPLOAD] Received upload request:`, {
+      hasFile: !!file,
+      fileSize: file?.size,
+      sessionId,
+      participantId,
+      chunkIndex,
+      isFinal,
+      userId,
+      chunkIndexRaw: formData.get("chunkIndex")?.toString()
+    });
 
     // --- Validation ---
-    if (!file || !sessionId || !participantId || formData.get("chunkIndex") === null) {
+    if (!file || !sessionId || !participantId || formData.get("chunkIndex") === null || isNaN(chunkIndex)) {
+      console.error(`[B2-UPLOAD] Validation failed:`, {
+        hasFile: !!file,
+        hasSessionId: !!sessionId,
+        hasParticipantId: !!participantId,
+        hasChunkIndex: formData.get("chunkIndex") !== null,
+        chunkIndexValid: !isNaN(chunkIndex)
+      });
       return NextResponse.json(
         { error: "Missing required fields: sessionId, participantId, chunkIndex, and file" },
         { status: 400 }
@@ -37,10 +57,40 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // --- Ensure Participation Record Exists ---
+    let actualParticipantId = participantId;
+    
+    // Check if the participantId is actually a userId (which means we need to create/find a participation record)
+    const existingParticipation = await prisma.participation.findFirst({
+      where: {
+        sessionId,
+        userId: participantId, // If participantId is actually a userId
+      },
+    });
+
+    if (!existingParticipation) {
+      // Create a participation record for this user in this session
+      console.log(`[B2-UPLOAD] Creating participation record for user ${participantId} in session ${sessionId}`);
+      
+      const newParticipation = await prisma.participation.create({
+        data: {
+          userId: participantId, // Use the participantId as userId
+          sessionId,
+          role: "HOST", // Default to HOST role for now
+        },
+      });
+      
+      actualParticipantId = newParticipation.id;
+      console.log(`[B2-UPLOAD] Created participation record with ID: ${actualParticipantId}`);
+    } else {
+      actualParticipantId = existingParticipation.id;
+      console.log(`[B2-UPLOAD] Found existing participation record with ID: ${actualParticipantId}`);
+    }
+
     // --- B2 Upload Logic ---
     const buffer = Buffer.from(await file.arrayBuffer());
     // Define a unique path and name for the chunk in B2
-    const b2FileName = `chunks/${sessionId}/${participantId}_${chunkIndex}.webm`;
+    const b2FileName = `chunks/${sessionId}/${actualParticipantId}_${chunkIndex}.webm`;
 
     console.log(`[B2-UPLOAD] Attempting to upload chunk ${chunkIndex} for session ${sessionId}...`);
 
@@ -67,7 +117,7 @@ export async function POST(req: NextRequest) {
     await prisma.recordingChunk.create({
       data: {
         sessionId,
-        participantId,
+        participantId: actualParticipantId, // Use the actual participation ID
         chunkIndex,
         storagePath: b2FileName, // Store the B2 file name/key
       },
@@ -80,7 +130,7 @@ export async function POST(req: NextRequest) {
       // The job only needs the sessionId. The worker will fetch chunk details from the DB.
       await stitchingQueue.add("stitch-session-files", {
         sessionId,
-        userId: formData.get("userId")?.toString(), // Pass userId if needed downstream
+        userId: userId || participantId, // Pass userId if needed downstream
       });
 
       return NextResponse.json(

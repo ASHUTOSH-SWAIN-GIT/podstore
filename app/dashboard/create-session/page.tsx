@@ -1,11 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { nanoid } from "nanoid";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import {
   Breadcrumb,
@@ -15,8 +13,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Mic, ArrowLeft } from "lucide-react";
+import { Mic, ArrowLeft, CheckCircle } from "lucide-react";
 
+// Main component for the Create Session page
 export default function CreateSessionPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -31,12 +30,12 @@ export default function CreateSessionPage() {
     e.preventDefault();
 
     if (!title.trim()) {
-      setError("Session title is required");
+      setError("Session title is required.");
       return;
     }
 
     if (!user) {
-      setError("You must be signed in to create a session");
+      setError("You must be signed in to create a session.");
       return;
     }
 
@@ -47,9 +46,7 @@ export default function CreateSessionPage() {
       const sessionId = nanoid();
       const response = await fetch("/api/sessions", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim() || undefined,
@@ -67,199 +64,152 @@ export default function CreateSessionPage() {
       if (response.ok) {
         const data = await response.json();
         setSuccess(true);
-        setError("");
-
-        // Redirect to the setup page after a brief delay
         setTimeout(() => {
           router.push(`/setup/${data.sessionId || sessionId}`);
-        }, 1500);
+        }, 2000);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to create session");
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unexpected error occurred",
-      );
+      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  // The success screen shown after creating a session
   if (success) {
-    return (
-      <div className="flex flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-white/10 px-4">
+    return <SuccessScreen />;
+  }
+
+  // The main form for creating a session
+  return (
+    <div className="flex-1 bg-[#111111] text-white">
+      <div className="container mx-auto max-w-3xl px-4 py-8 sm:py-12">
+        {/* Header section with back button and breadcrumbs */}
+        <div className="flex items-center justify-between mb-12">
+          <Button
+            variant="ghost"
+            onClick={() => router.back()}
+            className="text-gray-400 hover:text-white hover:bg-gray-800 -ml-4"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink
-                  href="/dashboard"
-                  className="text-gray-400 hover:text-white"
-                >
+                <BreadcrumbLink href="/dashboard" className="text-gray-400 hover:text-white">
                   Dashboard
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage className="text-white">
-                  Create Session
-                </BreadcrumbPage>
+                <BreadcrumbPage className="text-white font-medium">Create Session</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-        </header>
-
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center space-y-8 max-w-md">
-            <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto shadow-lg">
-              <Mic className="w-10 h-10 text-primary-foreground" />
-            </div>
-            <div className="space-y-4">
-              <h2 className="text-3xl font-bold text-foreground">
-                Session Created!
-              </h2>
-              <p className="text-muted-foreground text-lg">Redirecting to your session...</p>
-            </div>
-          </div>
         </div>
-      </div>
-    );
-  }
 
-  return (
-    <div className="flex flex-1 flex-col">
-      {/* Header with Breadcrumb */}
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b border-white/10 px-4 ">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink
-                href="/dashboard"
-                className="text-gray-400 hover:text-white"
+        {/* Page title and description */}
+        <div className="mb-12">
+          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
+            Create New Session
+          </h1>
+          <p className="text-lg text-gray-400">
+            Start a new recording session for your podcast or meeting.
+          </p>
+        </div>
+
+        {/* Form container */}
+        <div className="bg-[#1C1C1C] rounded-2xl border border-gray-800 p-6 sm:p-10 shadow-2xl shadow-black/20">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Session Title Input */}
+            <div className="space-y-3">
+              <label htmlFor="title" className="block text-sm font-semibold text-gray-300">
+                Session Title <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., Podcast Episode #12"
+                maxLength={100}
+                className="w-full px-4 py-3 bg-[#222222] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8A63D2] focus:border-transparent transition-all"
+                disabled={isLoading}
+              />
+              <div className="text-right text-xs text-gray-500">{title.length}/100</div>
+            </div>
+
+            {/* Session Description Input */}
+            <div className="space-y-3">
+              <label htmlFor="description" className="block text-sm font-semibold text-gray-300">
+                Description <span className="text-gray-500 ml-1 font-normal">(optional)</span>
+              </label>
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="A brief summary of what this session is about."
+                maxLength={500}
+                rows={4}
+                className="w-full px-4 py-3 bg-[#222222] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8A63D2] focus:border-transparent transition-all resize-none"
+                disabled={isLoading}
+              />
+              <div className="text-right text-xs text-gray-500">{description.length}/500</div>
+            </div>
+
+            {/* Error Message Display */}
+            {error && (
+              <div className="p-4 bg-red-900/30 border border-red-500/30 rounded-lg">
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <div className="flex justify-end pt-4">
+              <Button
+                type="submit"
+                disabled={!title.trim() || isLoading}
+                className="bg-[#8A63D2] hover:bg-[#7955b8] disabled:bg-gray-700 text-white px-8 py-6 text-base font-bold disabled:cursor-not-allowed transition-all min-w-[180px] rounded-lg"
               >
-                Dashboard
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage className="text-white">
-                Create Session
-              </BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </header>
-
-      {/* Main Content */}
-      <div className="flex-1 p-8">
-        <div className="max-w-3xl mx-auto">
-          {/* Back Button */}
-          <Button
-            variant="ghost"
-            onClick={() => router.back()}
-            className="text-muted-foreground hover:text-foreground hover:bg-accent mb-8"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-
-          {/* Page Header */}
-          <div className="mb-12">
-            <h1 className="text-4xl font-bold text-foreground mb-4">
-              Create New Session
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              Start a new recording session for your podcast or meeting.
-            </p>
-          </div>
-
-          {/* Form Container */}
-          <div className="bg-card rounded-2xl border border-border p-8 shadow-lg">
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Session Title */}
-              <div className="space-y-3">
-                <label
-                  htmlFor="title"
-                  className="block text-sm font-semibold text-foreground"
-                >
-                  Session Title *
-                </label>
-                <input
-                  id="title"
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Enter session title"
-                  maxLength={100}
-                  className="w-full px-4 py-4 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all text-base"
-                  disabled={isLoading}
-                />
-                <div className="flex justify-end">
-                  <span className="text-xs text-muted-foreground">
-                    {title.length}/100
-                  </span>
-                </div>
-              </div>
-
-              {/* Session Description */}
-              <div className="space-y-3">
-                <label
-                  htmlFor="description"
-                  className="block text-sm font-semibold text-foreground"
-                >
-                  Description
-                  <span className="text-muted-foreground ml-1 font-normal">(optional)</span>
-                </label>
-                <textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Optional session description"
-                  maxLength={500}
-                  rows={4}
-                  className="w-full px-4 py-4 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all resize-none text-base"
-                  disabled={isLoading}
-                />
-                <div className="flex justify-end">
-                  <span className="text-xs text-muted-foreground">
-                    {description.length}/500
-                  </span>
-                </div>
-              </div>
-
-              {/* Error Message */}
-              {error && (
-                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-                  <p className="text-destructive text-sm">{error}</p>
-                </div>
-              )}
-
-              {/* Submit Button */}
-              <div className="flex justify-end pt-4">
-                <Button
-                  type="submit"
-                  disabled={!title.trim() || isLoading}
-                  className="bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground px-8 py-3 text-base font-medium disabled:cursor-not-allowed transition-all min-w-[160px]"
-                >
-                  {isLoading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
-                      <span>Creating...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <Mic className="w-4 h-4" />
-                      <span>Create Session</span>
-                    </div>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </div>
+                {isLoading ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span>Creating...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <Mic className="w-5 h-5" />
+                    <span>Create Session</span>
+                  </div>
+                )}
+              </Button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
   );
 }
+
+// A dedicated component for the success screen for better organization
+const SuccessScreen = () => {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center bg-[#111111] p-8 text-center">
+      <div className="animate-in fade-in zoom-in-95 duration-500 space-y-6">
+        <div className="w-24 h-24 bg-[#27272A] border-2 border-green-500/30 rounded-full flex items-center justify-center mx-auto shadow-2xl shadow-green-500/10">
+          <CheckCircle className="w-12 h-12 text-green-400" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-3xl font-bold text-white">Session Created!</h2>
+          <p className="text-lg text-gray-400">
+            Get ready, you're being redirected to the studio...
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
