@@ -1,0 +1,184 @@
+2025-07-20T19:47:57: 🚀 Starting all worker processes...
+2025-07-20T19:47:57: Starting Stitching Worker...
+2025-07-20T19:47:57: Starting Media Conversion Worker...
+2025-07-20T19:47:57: Starting Upload Worker...
+2025-07-20T19:47:57: ✅ All workers started! Press Ctrl+C to stop all workers.
+2025-07-20T19:47:57: 📋 Worker processes: Stitching Worker, Media Conversion Worker, Upload Worker
+2025-07-20T20:42:25: 
+🛑 Shutting down all workers...
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
+Error: Cannot find module '/home/ash/podstore/scripts/start-all-workers.js'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1405:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1061:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1066:22)
+    at Module._load (node:internal/modules/cjs/loader:1215:37)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/ProcessContainer.js:292:27
+    at wrapper (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/once.js:12:16)
+    at next (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/waterfall.js:96:20)
+    at /home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/node_modules/async/internal/onlyOnce.js:12:16
+    at WriteStream.<anonymous> (/home/ash/.nvm/versions/node/v24.1.0/lib/node_modules/pm2/lib/Utility.js:186:13)
+    at WriteStream.emit (node:events:507:28)
