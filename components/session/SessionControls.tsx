@@ -1,76 +1,89 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Video, VideoOff, Settings, PhoneOff } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Square, AlertCircle, Circle } from "lucide-react";
 
 interface SessionControlsProps {
   isMuted: boolean;
   isVideoOff: boolean;
+  isRecording: boolean;
+  recordingError: string | null;
   toggleMute: () => void;
   toggleVideo: () => void;
+  toggleRecording: () => void;
   handleEndSession: () => void;
 }
 
 export const SessionControls: React.FC<SessionControlsProps> = ({
   isMuted,
   isVideoOff,
+  isRecording,
+  recordingError,
   toggleMute,
   toggleVideo,
+  toggleRecording,
   handleEndSession,
 }) => {
   return (
-    <div className="border-t border-gray-800 p-6">
+    <div className="bg-card border-t border-border p-4">
       <div className="flex items-center justify-center space-x-4">
-        <Button
-          onClick={toggleMute}
-          variant={isMuted ? "destructive" : "outline"}
+         <Button
+          onClick={toggleRecording}
           size="lg"
-          className={`${
-            isMuted
-              ? "bg-red-500 hover:bg-red-600"
-              : "bg-gray-800 hover:bg-gray-700 border-gray-700"
+          className={`px-6 h-12 ${
+            isRecording 
+              ? "bg-red-600 hover:bg-red-700 text-white" 
+              : "bg-red-500 hover:bg-red-600 text-white"
           }`}
         >
-          {isMuted ? (
-            <MicOff className="w-5 h-5" />
+          {isRecording ? (
+            <>
+              <Square className="w-4 h-4 mr-2 text-white fill-white" />
+              <span className="text-white">Stop Recording</span>
+            </>
           ) : (
-            <Mic className="w-5 h-5" />
+            <>
+              <Circle className="w-4 h-4 mr-2 text-white fill-white" />
+              <span className="text-white">Start Recording</span>
+            </>
           )}
+        </Button>
+
+        <Button
+          onClick={toggleMute}
+          variant={isMuted ? "destructive" : "secondary"}
+          size="lg"
+          className="rounded-full h-12 w-12 p-0"
+        >
+          {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
         </Button>
 
         <Button
           onClick={toggleVideo}
-          variant={isVideoOff ? "destructive" : "outline"}
+          variant={isVideoOff ? "destructive" : "secondary"}
           size="lg"
-          className={`${
-            isVideoOff
-              ? "bg-red-500 hover:bg-red-600"
-              : "bg-gray-800 hover:bg-gray-700 border-gray-700"
-          }`}
+          className="rounded-full h-12 w-12 p-0"
         >
-          {isVideoOff ? (
-            <VideoOff className="w-5 h-5" />
-          ) : (
-            <Video className="w-5 h-5" />
-          )}
-        </Button>
-
-        <Button
-          variant="outline"
-          size="lg"
-          className="bg-gray-800 hover:bg-gray-700 border-gray-700"
-        >
-          <Settings className="w-5 h-5" />
+          {isVideoOff ? <VideoOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
         </Button>
 
         <Button
           onClick={handleEndSession}
           variant="destructive"
           size="lg"
-          className="bg-red-500 hover:bg-red-600"
+          className="rounded-full h-12 w-12 p-0"
         >
-          <PhoneOff className="w-5 h-5" />
+          <PhoneOff className="h-5 w-5" />
         </Button>
       </div>
+
+      {recordingError && (
+        <div className="flex items-center justify-center mt-4">
+          <div className="flex items-center space-x-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg max-w-md">
+            <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
+            <p className="text-sm text-destructive">{recordingError}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
-import { VideoOff, MicOff, Users, Move } from "lucide-react";
+import { VideoOff, MicOff, Users, Copy, Check } from "lucide-react";
 
 interface Participant {
   id: string;
@@ -17,7 +17,113 @@ interface VideoAreaProps {
   liveParticipantCount: number;
   isVideoOff: boolean;
   isMuted: boolean;
+  inviteLink: string;
 }
+
+/**
+ * Renders the UI for inviting users when no participants are connected.
+ */
+const InvitePanel = ({
+  inviteLink,
+}: {
+  inviteLink: string;
+}) => {
+  const [isCopied, setIsCopied] = useState(false);
+
+  const handleCopyLink = useCallback(() => {
+    navigator.clipboard.writeText(inviteLink).then(() => {
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    });
+  }, [inviteLink]);
+
+  return (
+    <div className="w-full h-full bg-card rounded-xl border border-border flex flex-col items-center justify-center p-8 text-center">
+      <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+        <Users className="w-8 h-8 text-primary" />
+      </div>
+      
+      <h2 className="text-2xl font-bold text-card-foreground mb-2">Invite people</h2>
+      <p className="text-muted-foreground mb-8">
+        Share this link to invite people to your studio.
+      </p>
+
+      <div className="flex items-center space-x-2 bg-secondary border border-border rounded-lg p-2 w-full max-w-md mb-6">
+        <p className="flex-1 text-left text-muted-foreground text-sm truncate px-2">
+          {inviteLink}
+        </p>
+        <button
+          onClick={handleCopyLink}
+          className={`px-4 py-2 rounded-md text-sm font-semibold flex items-center transition-colors ${
+            isCopied
+              ? "bg-green-600 text-white"
+              : "bg-primary hover:bg-primary/90 text-primary-foreground"
+          }`}
+        >
+          {isCopied ? (
+            <>
+              <Check className="w-4 h-4 mr-2" />
+              Copied
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4 mr-2" />
+              Copy link
+            </>
+          )}
+        </button>
+      </div>
+
+      <div className="flex items-center my-6 w-full max-w-xs">
+        <div className="flex-grow border-t border-border"></div>
+        <span className="flex-shrink mx-4 text-muted-foreground text-sm">or</span>
+        <div className="flex-grow border-t border-border"></div>
+      </div>
+
+      <button className="bg-secondary hover:bg-secondary/80 text-secondary-foreground font-semibold py-2 px-6 rounded-lg transition-colors">
+        Invite by email
+      </button>
+    </div>
+  );
+};
+
+/**
+ * Renders the grid of remote participants.
+ */
+const ParticipantGrid = ({ 
+  remoteVideosRef, 
+  liveParticipantCount 
+}: { 
+  remoteVideosRef: React.RefObject<HTMLDivElement | null>, 
+  liveParticipantCount: number 
+}) => {
+  return (
+    <div className="h-full flex flex-col space-y-4 bg-card rounded-xl border border-border p-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-foreground flex items-center">
+          <Users className="w-5 h-5 mr-2" />
+          Participants ({liveParticipantCount})
+        </h3>
+        <div className="flex items-center space-x-2">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span className="text-sm text-muted-foreground">Live</span>
+        </div>
+      </div>
+      
+      <div
+        ref={remoteVideosRef}
+        className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 bg-secondary/20 rounded-lg p-4 min-h-0"
+      >
+        {/* LiveKit will dynamically add participant video elements here */}
+        {liveParticipantCount === 0 && (
+          <div className="flex items-center justify-center text-muted-foreground">
+            <p>Waiting for participants to join...</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export const VideoArea: React.FC<VideoAreaProps> = ({
   localVideoRef,
@@ -26,242 +132,44 @@ export const VideoArea: React.FC<VideoAreaProps> = ({
   liveParticipantCount,
   isVideoOff,
   isMuted,
+  inviteLink,
 }) => {
-  const [videoSize, setVideoSize] = useState({ width: 640, height: 360 });
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const videoContainerRef = useRef<HTMLDivElement>(null);
-  const isDraggingRef = useRef(false);
-  const isResizingRef = useRef(false);
-  const startPosRef = useRef({ x: 0, y: 0 });
-
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    isResizingRef.current = true;
-    const rect = videoContainerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizingRef.current || !rect) return;
-
-      const newWidth = Math.max(320, Math.min(1200, e.clientX - rect.left));
-      const newHeight = Math.max(180, Math.min(800, e.clientY - rect.top));
-
-      setVideoSize({ width: newWidth, height: newHeight });
-    };
-
-    const handleMouseUp = () => {
-      isResizingRef.current = false;
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  }, []);
-
-  const handleDragStart = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      isDraggingRef.current = true;
-      startPosRef.current = {
-        x: e.clientX - position.x,
-        y: e.clientY - position.y,
-      };
-
-      const handleMouseMove = (e: MouseEvent) => {
-        if (!isDraggingRef.current) return;
-
-        setPosition({
-          x: e.clientX - startPosRef.current.x,
-          y: e.clientY - startPosRef.current.y,
-        });
-      };
-
-      const handleMouseUp = () => {
-        isDraggingRef.current = false;
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-      };
-
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-    },
-    [position],
-  );
-
-  // Reset position if it goes out of bounds
-  useEffect(() => {
-    const container = videoContainerRef.current?.parentElement;
-    if (container) {
-      const containerRect = container.getBoundingClientRect();
-      const maxX = Math.max(0, containerRect.width - videoSize.width);
-      const maxY = Math.max(0, containerRect.height - videoSize.height);
-
-      setPosition((prev) => ({
-        x: Math.max(0, Math.min(maxX, prev.x)),
-        y: Math.max(0, Math.min(maxY, prev.y)),
-      }));
-    }
-  }, [videoSize]);
-
   return (
-    <div className="flex-1 p-6">
-      <div className="h-full flex flex-col space-y-6">
-        {/* Host Video (Main/Local) */}
-        <div className="flex-1 relative overflow-hidden">
-          <div
-            ref={videoContainerRef}
-            className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden relative group shadow-lg"
-            style={{
-              width: `${videoSize.width}px`,
-              height: `${videoSize.height}px`,
-              transform: `translate(${position.x}px, ${position.y}px)`,
-              cursor: isDraggingRef.current ? "grabbing" : "default",
-              position: "absolute",
-              zIndex: 10,
-            }}
-          >
-            {/* Drag Handle */}
-            <div
-              className="absolute top-2 right-2 w-8 h-8 bg-black/70 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing z-20 hover:bg-purple-500/50"
-              onMouseDown={handleDragStart}
-              title="Drag to move"
-            >
-              <Move className="w-4 h-4 text-white" />
-            </div>
+    // Updated to take full width without sidebar
+    <div className="w-full flex flex-row space-x-6 p-6 h-full overflow-hidden bg-background">
+      
+      {/* Left Panel: Host Video */}
+      <div className="w-1/2 h-full bg-black rounded-xl border border-border overflow-hidden relative group shadow-lg flex-shrink-0">
+        <div ref={localVideoRef} className="w-full h-full" />
 
-            {/* LiveKit video container for host */}
-            <div ref={localVideoRef} className="w-full h-full relative" />
-
-            {isVideoOff && (
-              <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <div className="w-20 h-20 bg-gray-700 rounded-full flex items-center justify-center mx-auto">
-                    <VideoOff className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <p className="text-gray-400">Camera is off</p>
-                </div>
+        {isVideoOff && (
+          <div className="absolute inset-0 bg-secondary flex items-center justify-center">
+            <div className="text-center space-y-4">
+              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto">
+                <VideoOff className="w-8 h-8 text-muted-foreground" />
               </div>
-            )}
-
-            <div className="absolute bottom-4 left-4">
-              <Badge className="bg-black/50 text-white border-gray-600">
-                You (Host) {isMuted && <MicOff className="w-3 h-3 ml-1" />}
-              </Badge>
-            </div>
-
-            {/* Resize Handle */}
-            <div
-              className="absolute bottom-0 right-0 w-6 h-6 bg-purple-500/30 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:bg-purple-500/50"
-              style={{
-                clipPath: "polygon(100% 0, 100% 100%, 0 100%)",
-                borderTop: "2px solid #a855f7",
-                borderLeft: "2px solid #a855f7",
-              }}
-              onMouseDown={handleResizeStart}
-              title="Drag to resize"
-            />
-
-            {/* Size indicator */}
-            <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-              <Badge className="bg-black/70 text-white border-gray-600 text-xs">
-                {videoSize.width} × {videoSize.height}
-              </Badge>
+              <p className="text-muted-foreground">Your camera is off</p>
             </div>
           </div>
+        )}
 
-          {/* Background placeholder */}
-          <div className="w-full h-full bg-gray-950/50 rounded-xl border border-gray-800 flex items-center justify-center">
-            <div className="text-center text-gray-500">
-              <VideoOff className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p>Host video area</p>
-              <p className="text-sm opacity-75">Your video feed appears here</p>
-            </div>
-          </div>
+        <div className="absolute bottom-4 left-4">
+          <Badge className="bg-black/70 text-white border-border backdrop-blur-sm">
+            You (Host) {isMuted && <MicOff className="w-3 h-3 ml-1" />}
+          </Badge>
         </div>
+      </div>
 
-        {/* Participants Video Boxes */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white flex items-center">
-            <Users className="w-5 h-5 mr-2" />
-            Participants ({liveParticipantCount})
-            {liveParticipantCount > 0 && (
-              <div className="ml-2 w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            )}
-          </h3>
-
-          {/* LiveKit Dynamic Participant Videos Container */}
-          <div className="space-y-4">
-            <div
-              ref={remoteVideosRef}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-            >
-              {/* LiveKit will dynamically add participant video boxes here */}
-            </div>
-
-            {/* Database participants as placeholder boxes when not live */}
-            {liveParticipantCount === 0 && participants.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {participants.map((participant) => (
-                  <div
-                    key={participant.id}
-                    className="aspect-video bg-gray-800/50 rounded-lg border border-gray-700 relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center space-y-2">
-                        <div className="w-12 h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center mx-auto">
-                          <span className="text-white font-semibold">
-                            {participant.user.name?.charAt(0) || "U"}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-400">
-                          {participant.user.name || "Unknown"}
-                        </p>
-                        <p className="text-xs text-gray-500">Not connected</p>
-                      </div>
-                    </div>
-                    <div className="absolute top-2 right-2">
-                      <Badge className="bg-gray-600/50 text-white border-gray-600 text-xs">
-                        Invited
-                      </Badge>
-                    </div>
-                    <div className="absolute bottom-2 left-2">
-                      <Badge className="bg-gray-600/50 text-white border-gray-600 text-xs">
-                        {participant.role}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Empty state */}
-          {liveParticipantCount === 0 && participants.length === 0 && (
-            <div className="text-center py-12 bg-gray-900/30 rounded-xl border border-gray-800">
-              <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 text-lg">No participants yet</p>
-              <p className="text-gray-500 text-sm mt-2">
-                Share the invite link to get others to join
-              </p>
-            </div>
-          )}
-
-          {/* Info message when live participants are present */}
-          {liveParticipantCount > 0 && (
-            <div className="text-center py-4">
-              <p className="text-green-400 text-sm flex items-center justify-center">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                {liveParticipantCount} participant
-                {liveParticipantCount > 1 ? "s" : ""} connected live
-              </p>
-            </div>
-          )}
-        </div>
+      {/* Right Panel: Conditional - Shows InvitePanel or ParticipantGrid */}
+      <div className="w-1/2 h-full flex-1">
+        {liveParticipantCount > 0 ? (
+          <ParticipantGrid 
+            remoteVideosRef={remoteVideosRef} 
+            liveParticipantCount={liveParticipantCount} 
+          />
+        ) : (
+          <InvitePanel inviteLink={inviteLink} />
+        )}
       </div>
     </div>
   );

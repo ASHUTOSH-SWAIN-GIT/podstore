@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from '@/hooks/useAuth'
 import { 
   PlusCircle, 
   Play, 
@@ -21,6 +22,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarExpanded, setSidebarExpanded] = useState(true)
   const pathname = usePathname()
+  const { user } = useAuth()
 
   const navigationItems = [
     {
@@ -42,6 +44,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       active: pathname === '/dashboard/profile'
     }
   ]
+
+  // Get user display information
+  const getUserDisplayName = () => {
+    if (!user) return 'Guest User'
+    return user.user_metadata?.full_name || 
+           user.user_metadata?.name || 
+           user.email?.split('@')[0] || 
+           'User'
+  }
+
+  const getUserAvatar = () => {
+    return user?.user_metadata?.avatar_url || 
+           user?.user_metadata?.picture ||
+           null
+  }
+
+  const userDisplayName = getUserDisplayName()
+  const userEmail = user?.email || ''
+  const userAvatar = getUserAvatar()
 
   return (
     <div className="flex h-screen bg-background text-foreground">
@@ -73,12 +94,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <nav className="space-y-2">
               {navigationItems.map((item, index) => {
                 const Icon = item.icon
+                // Only show active state when sidebar is expanded
+                const isActiveAndExpanded = item.active && sidebarExpanded
+                
                 return (
                   <Link
                     key={index}
                     href={item.href}
                     className={`flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors group ${
-                      item.active 
+                      isActiveAndExpanded
                         ? 'bg-sidebar-primary text-sidebar-primary-foreground' 
                         : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                     }`}
@@ -96,16 +120,31 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* User Footer */}
           <div className="p-4 border-t border-sidebar-border">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-sidebar-primary rounded-full flex items-center justify-center flex-shrink-0">
-                <User className="w-5 h-5 text-sidebar-primary-foreground" />
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {userAvatar ? (
+                  <img
+                    src={userAvatar}
+                    alt={userDisplayName}
+                    className="w-full h-full object-cover rounded-full"
+                    onError={(e) => {
+                      // Fallback to user icon if image fails to load
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                      target.nextElementSibling?.classList.remove('hidden')
+                    }}
+                  />
+                ) : null}
+                <div className={`w-full h-full bg-sidebar-primary rounded-full flex items-center justify-center ${userAvatar ? 'hidden' : ''}`}>
+                  <User className="w-5 h-5 text-sidebar-primary-foreground" />
+                </div>
               </div>
               {sidebarExpanded && (
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-sidebar-foreground truncate">
-                    John Doe
+                    {userDisplayName}
                   </p>
                   <p className="text-xs text-sidebar-foreground/70 truncate">
-                    john@example.com
+                    {userEmail}
                   </p>
                 </div>
               )}

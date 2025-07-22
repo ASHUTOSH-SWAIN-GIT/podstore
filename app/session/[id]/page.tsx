@@ -8,7 +8,6 @@ import { useSessionControls } from "@/hooks/useSessionControls";
 import { SessionHeader } from "@/components/session/SessionHeader";
 import { VideoArea } from "@/components/session/VideoArea";
 import { SessionControls } from "@/components/session/SessionControls";
-import { SessionSidebar } from "@/components/session/SessionSidebar";
 
 export default function SessionPage() {
   const params = useParams();
@@ -60,7 +59,7 @@ export default function SessionPage() {
   useEffect(() => {
     if (session && user && !isConnected && Object.keys(devicePreferences).length > 0) {
       const userId = user.id || user.email || "anonymous";
-      
+
       // Connect to room with session and user ID
       connectToRoom(sessionId, userId);
     }
@@ -80,10 +79,10 @@ export default function SessionPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto"></div>
-          <p className="text-gray-400">Loading session...</p>
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">Loading session...</p>
         </div>
       </div>
     );
@@ -91,16 +90,16 @@ export default function SessionPage() {
 
   if (error || !session) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-6 max-w-md">
-          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
-            <span className="text-red-400 text-2xl">✕</span>
+          <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto border border-destructive/20">
+            <span className="text-destructive text-2xl">✕</span>
           </div>
           <div>
-            <h2 className="text-2xl font-semibold text-white mb-2">
+            <h2 className="text-2xl font-semibold text-foreground mb-2">
               Session Not Found
             </h2>
-            <p className="text-gray-400">
+            <p className="text-muted-foreground">
               {error ||
                 "The session you're looking for doesn't exist or has ended."}
             </p>
@@ -110,8 +109,10 @@ export default function SessionPage() {
     );
   }
 
+ 
+
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       <SessionHeader
         session={session}
         isRecording={isRecording}
@@ -121,7 +122,8 @@ export default function SessionPage() {
         formatDuration={formatDuration}
       />
 
-      <div className="flex-1 flex">
+      {/* Make this flex-1 to fill available space */}
+      <div className="flex-1 min-h-0">
         <VideoArea
           localVideoRef={localVideoRef as RefObject<HTMLDivElement>}
           remoteVideosRef={remoteVideosRef as RefObject<HTMLDivElement>}
@@ -129,23 +131,18 @@ export default function SessionPage() {
           liveParticipantCount={liveParticipantCount}
           isVideoOff={isVideoOff}
           isMuted={isMuted}
-        />
-
-        <SessionSidebar
-          session={session}
-          userId={user?.id || user?.email || "anonymous"}
-          copyInviteLink={() => copyInviteLink(session)}
-          toggleRecording={() => toggleRecording(sessionId, user?.id || user?.email || "anonymous")}
-          isRecording={isRecording}
-          recordingError={recordingError}
+          inviteLink={`${window?.location?.origin}/session/${sessionId}` || ""}
         />
       </div>
 
       <SessionControls
         isMuted={isMuted}
         isVideoOff={isVideoOff}
+        isRecording={isRecording}
+        recordingError={recordingError}
         toggleMute={toggleMute}
         toggleVideo={toggleVideo}
+        toggleRecording={() => toggleRecording(sessionId, user?.id || user?.email || "anonymous")}
         handleEndSession={handleEndSession}
       />
     </div>

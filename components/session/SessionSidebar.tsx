@@ -1,158 +1,81 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Settings, Clock, Share2 } from "lucide-react";
-import { format } from "date-fns";
+import { Copy, Play, Square, AlertCircle } from "lucide-react";
 
 interface SessionSidebarProps {
-  session: {
-    id: string;
-    title: string;
-    createdAt: string;
-    status: string;
-    joinToken: string;
-    host: {
-      name: string;
-      email: string;
-    };
-  };
+  session: any;
   userId: string;
   copyInviteLink: () => void;
   toggleRecording: () => void;
   isRecording: boolean;
-  recordingError?: string | null;
+  recordingError: string | null;
 }
 
 export const SessionSidebar: React.FC<SessionSidebarProps> = ({
   session,
+  userId,
   copyInviteLink,
   toggleRecording,
   isRecording,
-  userId,
-  recordingError
+  recordingError,
 }) => {
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "live":
-        return "bg-green-500/10 text-green-400 border-green-500/20";
-      case "ended":
-        return "bg-red-500/10 text-red-400 border-red-500/20";
-      case "scheduled":
-        return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-      default:
-        return "bg-gray-500/10 text-gray-400 border-gray-500/20";
-    }
-  };
-
   return (
-    <div className="w-80 border-l border-gray-800 p-6 space-y-6">
-      {/* Session Info */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-white">Session Info</h3>
-        <div className="space-y-3">
-          <div className="p-3 bg-gray-900 rounded-lg border border-gray-800">
-            <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-              Host
-            </div>
-            <div className="text-white">{session.host.name}</div>
-          </div>
-
-          <div className="p-3 bg-gray-900 rounded-lg border border-gray-800">
-            <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-              Created
-            </div>
-            <div className="text-white flex items-center">
-              <Clock className="w-4 h-4 mr-2" />
-              {format(new Date(session.createdAt), "MMM d, yyyy h:mm a")}
-            </div>
-          </div>
-
-          <div className="p-3 bg-gray-900 rounded-lg border border-gray-800">
-            <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-              Status
-            </div>
-            <Badge className={getStatusColor(session.status)}>
-              {session.status}
-            </Badge>
-          </div>
-        </div>
-      </div>
-
-      {/* Invite */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-white">Invite Others</h3>
+    <div className="w-80 bg-card border-l border-border p-6 space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold text-card-foreground mb-4">Session Info</h3>
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">
-              Invite Link
-            </label>
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/join/${session.joinToken}`}
-                readOnly
-                className="flex-1 px-3 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-              <Button
-                size="sm"
-                onClick={copyInviteLink}
-                className="bg-gray-800 hover:bg-gray-700 text-white"
-              >
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
+            <p className="text-sm text-muted-foreground">Title</p>
+            <p className="text-sm font-medium text-card-foreground">{session?.title}</p>
           </div>
-
-          <Button
-            onClick={copyInviteLink}
-            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-          >
-            <Share2 className="w-4 h-4 mr-2" />
-            Share Invite Link
-          </Button>
+          <div>
+            <p className="text-sm text-muted-foreground">Host</p>
+            <p className="text-sm font-medium text-card-foreground">{session?.host?.name || "Unknown"}</p>
+          </div>
         </div>
       </div>
 
-      {/* Recording Controls */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-white">Recording</h3>
-        <Button
-          onClick={toggleRecording}
-          className={`w-full ${
-            isRecording
-              ? "bg-red-500 hover:bg-red-600"
-              : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-          }`}
-        >
-          {isRecording ? (
-            <>
-              <div className="w-4 h-4 bg-white rounded-sm mr-2"></div>
-              Stop Recording
-            </>
-          ) : (
-            <>
-              <div className="w-4 h-4 bg-white rounded-full mr-2"></div>
-              Start Recording
-            </>
+      <div>
+        <h3 className="text-lg font-semibold text-card-foreground mb-4">Recording</h3>
+        <div className="space-y-3">
+          <Button
+            onClick={toggleRecording}
+            variant={isRecording ? "destructive" : "default"}
+            className="w-full"
+          >
+            {isRecording ? (
+              <>
+                <Square className="w-4 h-4 mr-2" />
+                Stop Recording
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4 mr-2" />
+                Start Recording
+              </>
+            )}
+          </Button>
+
+          {recordingError && (
+            <div className="flex items-center space-x-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
+              <p className="text-sm text-destructive">{recordingError}</p>
+            </div>
           )}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-semibold text-card-foreground mb-4">Invite</h3>
+        <Button
+          onClick={copyInviteLink}
+          variant="outline"
+          className="w-full"
+        >
+          <Copy className="w-4 h-4 mr-2" />
+          Copy Invite Link
         </Button>
-        
-        {isRecording && (
-          <div className="text-center">
-            <div className="flex items-center justify-center space-x-2 text-red-400">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-              <span className="text-sm">Recording in progress...</span>
-            </div>
-          </div>
-        )}
-        
-        {recordingError && (
-          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-            <div className="text-red-400 text-sm">
-              <strong>Recording Error:</strong> {recordingError}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
