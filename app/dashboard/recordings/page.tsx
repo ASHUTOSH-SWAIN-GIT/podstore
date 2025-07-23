@@ -23,6 +23,7 @@ import {
   AlertCircle,
   Eye,
   RefreshCw,
+  Search,
 } from "lucide-react";
 
 interface Recording {
@@ -45,12 +46,23 @@ export default function RecordingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredRecordings, setFilteredRecordings] = useState<Recording[]>([]);
 
   useEffect(() => {
     if (user) {
       fetchRecordings();
     }
   }, [user]);
+
+  useEffect(() => {
+    // Filter recordings based on search term
+    const filtered = recordings.filter((recording) =>
+      recording.sessionTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      recording.hostName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredRecordings(filtered);
+  }, [recordings, searchTerm]);
 
   const fetchRecordings = async () => {
     try {
@@ -198,131 +210,184 @@ export default function RecordingsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      {/* Header */}
+      <header className="bg-card border-b border-border px-6 py-4 mb-6 rounded-lg">
+        <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Recordings</h1>
-            <p className="text-muted-foreground">
-              Manage your session recordings and downloads
-            </p>
+            <h1 className="text-2xl font-bold text-card-foreground">Recordings</h1>
+            <p className="text-muted-foreground">Manage your session recordings and downloads</p>
           </div>
-          <Button onClick={fetchRecordings} variant="outline" disabled={loading}>
-            <RefreshCw
-              className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`}
-            />
-            Refresh
-          </Button>
+          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search recordings..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full sm:w-64 pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+              />
+            </div>
+            <Button 
+              onClick={fetchRecordings} 
+              variant="outline" 
+              disabled={loading}
+              className="flex items-center space-x-2 whitespace-nowrap"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              <span>Refresh</span>
+            </Button>
+          </div>
         </div>
+      </header>
 
+      <div className="space-y-6">
         {loading ? (
-          <div className="flex items-center justify-center min-h-96">
-            <div className="flex items-center space-x-2">
-              <Loader2 className="w-6 h-6 animate-spin" />
-              <span>Loading recordings...</span>
+          <div className="bg-card rounded-xl p-8 border border-border shadow-lg">
+            <div className="flex items-center justify-center space-x-3">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              <span className="text-card-foreground">Loading recordings...</span>
             </div>
           </div>
         ) : error ? (
-          <div className="flex items-center justify-center min-h-96">
-            <div className="text-center space-y-4">
-              <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
-              <div>
-                <h3 className="text-lg font-semibold">Error Loading Recordings</h3>
-                <p className="text-muted-foreground">{error}</p>
-              </div>
-              <Button onClick={fetchRecordings}>Try Again</Button>
+          <div className="bg-card rounded-xl p-8 border border-border shadow-lg text-center">
+            <div className="w-16 h-16 bg-destructive/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-destructive" />
             </div>
+            <h3 className="text-xl font-semibold text-card-foreground mb-2">Error Loading Recordings</h3>
+            <p className="text-muted-foreground mb-6">{error}</p>
+            <Button onClick={fetchRecordings} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Try Again
+            </Button>
           </div>
         ) : recordings.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <FileAudio className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No recordings yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Start recording sessions to see them here
-              </p>
-              <a href="/dashboard/create-session">
-                <Button>Create Your First Session</Button>
-              </a>
-            </CardContent>
-          </Card>
+          <div className="bg-card rounded-xl p-8 border border-border shadow-lg text-center">
+            <div className="w-16 h-16 bg-muted/30 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <FileAudio className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold text-card-foreground mb-2">No recordings yet</h3>
+            <p className="text-muted-foreground mb-6">
+              Start recording sessions to see them here
+            </p>
+            <a href="/dashboard/create-session">
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3">
+                <Play className="w-5 h-5 mr-2" />
+                Create Your First Session
+              </Button>
+            </a>
+          </div>
+        ) : filteredRecordings.length === 0 && searchTerm ? (
+          <div className="bg-card rounded-xl p-8 border border-border shadow-lg text-center">
+            <div className="w-16 h-16 bg-muted/30 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold text-card-foreground mb-2">No recordings found</h3>
+            <p className="text-muted-foreground mb-6">
+              No recordings match your search for "{searchTerm}". Try adjusting your search terms.
+            </p>
+            <Button 
+              onClick={() => setSearchTerm("")} 
+              variant="outline"
+              className="bg-primary/10 hover:bg-primary/20 text-primary"
+            >
+              Clear Search
+            </Button>
+          </div>
         ) : (
-          <div className="grid gap-4">
-            {recordings.map((recording) => (
-              <Card
+          <div>
+            {/* Search Results Summary */}
+            {searchTerm && (
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Found {filteredRecordings.length} recording{filteredRecordings.length !== 1 ? 's' : ''} 
+                  {searchTerm && ` for "${searchTerm}"`}
+                </p>
+                <Button 
+                  onClick={() => setSearchTerm("")} 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Clear search
+                </Button>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredRecordings.map((recording) => (
+              <div
                 key={recording.id}
-                className="hover:shadow-md transition-shadow"
+                className="bg-card rounded-xl p-6 border border-border hover:border-primary/50 transition-colors shadow-lg"
               >
-                <CardHeader>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center">
+                    <Play className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="flex items-center space-x-1">
+                  </div>
+                </div>
+                
+                <h4 className="font-semibold text-card-foreground mb-2 text-lg">
+                  {recording.sessionTitle || `Session ${recording.sessionId.slice(-8)}`}
+                </h4>
+                
+                <p className="text-sm text-muted-foreground mb-4">
+                  {formatDuration(recording.duration)} • {recording.participantCount + 1} participant{recording.participantCount + 1 !== 1 ? 's' : ''}
+                </p>
+                
+                <div className="text-xs text-muted-foreground mb-4">
                   <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="flex items-center space-x-2">
-                        <span>
-                          {recording.sessionTitle ||
-                            `Session ${recording.sessionId.slice(-8)}`}
-                        </span>
-                        <Badge
-                          variant="outline"
-                          className="bg-green-500/10 text-green-500 border-green-500/20"
-                        >
-                          Ready
-                        </Badge>
-                      </CardTitle>
-                      <CardDescription>
-                        Host: {recording.hostName || "Unknown"}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => viewRecording(recording.sessionId)}
-                        disabled={viewingId === recording.sessionId}
-                      >
-                        {viewingId === recording.sessionId ? (
-                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                        ) : (
-                          <Eye className="w-4 h-4 mr-1" />
-                        )}
-                        {viewingId === recording.sessionId ? 'Loading...' : 'View'}
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => downloadRecording(recording.sessionId, recording.sessionTitle)}
-                        disabled={downloadingId === recording.sessionId}
-                      >
-                        {downloadingId === recording.sessionId ? (
-                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                        ) : (
-                          <Download className="w-4 h-4 mr-1" />
-                        )}
-                        {downloadingId === recording.sessionId ? 'Downloading...' : 'Download'}
-                      </Button>
-                    </div>
+                    <span>Host: {recording.hostName || "Unknown"}</span>
+                    <span>{formatDate(recording.createdAt)}</span>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center space-x-6 text-sm text-muted-foreground">
-                    <div className="flex items-center space-x-1">
-                      <Clock className="w-4 h-4" />
-                      <span>{formatDuration(recording.duration)}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Users className="w-4 h-4" />
-                      <span>{recording.participantCount + 1} participants</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="w-4 h-4" />
-                      <span>{formatDate(recording.createdAt)}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <FileAudio className="w-4 h-4" />
-                      <span>{formatFileSize(recording.fileSize)}</span>
-                    </div>
+                  <div className="mt-1">
+                    Size: {formatFileSize(recording.fileSize)}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+                
+                <div className="space-y-2">
+                  <Button 
+                    className="w-full bg-primary/10 hover:bg-primary/20 text-primary py-2"
+                    variant="ghost"
+                    onClick={() => viewRecording(recording.sessionId)}
+                    disabled={viewingId === recording.sessionId}
+                  >
+                    {viewingId === recording.sessionId ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Recording
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button 
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => downloadRecording(recording.sessionId, recording.sessionTitle)}
+                    disabled={downloadingId === recording.sessionId}
+                  >
+                    {downloadingId === recording.sessionId ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Downloading...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             ))}
+            </div>
           </div>
         )}
       </div>
