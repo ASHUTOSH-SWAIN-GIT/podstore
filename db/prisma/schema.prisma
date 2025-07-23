@@ -75,7 +75,7 @@ model MediaFile {
   type          MediaType
   isFinal       Boolean        @default(false)
   status        UploadStatus   @default(PENDING)
-  s3Key         String
+  s3Key         String?
   url           String?
   duration      Int?
   uploadedAt    DateTime?

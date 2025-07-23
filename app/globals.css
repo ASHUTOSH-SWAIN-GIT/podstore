@@ -4,8 +4,8 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --radius: 0.625rem;
+:root {
+  --radius: 0.625rem;
     --background: #0a0a0a;
     --foreground: #ffffff;
     --card: #1a1a1a;
@@ -33,7 +33,7 @@
     --sidebar-accent-foreground: #ffffff;
     --sidebar-border: #2a2a2a;
     --sidebar-ring: #8b5cf6;
-  }
+}
 
   * {
     @apply border-border;
