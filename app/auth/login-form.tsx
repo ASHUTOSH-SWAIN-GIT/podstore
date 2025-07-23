@@ -22,7 +22,7 @@ export function LoginForm({
   
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnTo = searchParams.get("returnTo") || "/dashboard/create-session";
+  const returnTo = searchParams.get("returnTo") || searchParams.get("redirect") || "/dashboard/create-session";
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

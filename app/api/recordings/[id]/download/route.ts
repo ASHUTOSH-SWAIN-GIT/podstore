@@ -3,6 +3,7 @@ import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/utils/prisma";
+import { getDownloadUrl, isCDNConfigured } from "@/lib/cdn-config";
 
 const s3 = new S3Client({
   region: "auto",
@@ -51,7 +52,9 @@ export async function GET(
           { participants: { some: { userId: user.id } } },
         ],
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
         mediaFiles: {
           where: {
             isFinal: true,
@@ -74,7 +77,19 @@ export async function GET(
     }
 
     try {
-      // Get the file from S3
+      // Determine file extension and filename first
+      const fileExtension = mediaFile.s3Key.split('.').pop()?.toLowerCase() || 'webm';
+      const fileName = `recording-${session.title ? session.title.replace(/[^a-zA-Z0-9-_]/g, '-') : id}.${fileExtension}`;
+
+      // If CDN is configured, redirect to CDN download URL for maximum speed
+      if (isCDNConfigured()) {
+        const cdnDownloadUrl = getDownloadUrl(mediaFile.s3Key, fileName);
+        
+        // For CDN, we can redirect directly for fastest download
+        return NextResponse.redirect(cdnDownloadUrl, 302);
+      }
+
+      // Fallback: Stream through our server (slower but works without CDN)
       const command = new GetObjectCommand({
         Bucket: BUCKET,
         Key: mediaFile.s3Key,
@@ -103,10 +118,8 @@ export async function GET(
         offset += chunk.length;
       }
 
-      // Determine file extension and MIME type
-      const fileExtension = mediaFile.s3Key.split('.').pop()?.toLowerCase() || 'webm';
+      // Determine MIME type
       const mimeType = getMimeType(fileExtension);
-      const fileName = `recording-${id}.${fileExtension}`;
 
       // Return the file as a download
       return new NextResponse(buffer, {

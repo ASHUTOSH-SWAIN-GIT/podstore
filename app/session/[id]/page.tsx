@@ -1,7 +1,7 @@
 "use client";
 
 import React, { RefObject, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useSessionData } from "@/hooks/useSessionData";
 import { useSessionControls } from "@/hooks/useSessionControls";
@@ -11,9 +11,10 @@ import { SessionControls } from "@/components/session/SessionControls";
 
 export default function SessionPage() {
   const params = useParams();
+  const router = useRouter();
   const sessionId = params.id as string;
 
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { session, participants, isLoading, error } = useSessionData(sessionId);
   const {
     isRecording,
@@ -34,6 +35,14 @@ export default function SessionPage() {
     connectToRoom,
     ensureLocalVideoAttached,
   } = useSessionControls();
+
+  // Redirect unauthenticated users to login via join flow
+  useEffect(() => {
+    if (!authLoading && !user) {
+      // Redirect to auth page with session redirect
+      router.push(`/auth?redirect=/session/${sessionId}`);
+    }
+  }, [authLoading, user, sessionId, router]);
 
   // Get device preferences from URL parameters (client-side only)
   const [devicePreferences, setDevicePreferences] = useState<{
@@ -57,25 +66,52 @@ export default function SessionPage() {
 
   // Auto-connect to LiveKit room when session and user are ready
   useEffect(() => {
-    if (session && user && !isConnected && Object.keys(devicePreferences).length > 0) {
+    if (session && user && !isConnected) {
       const userId = user.id || user.email || "anonymous";
 
       // Connect to room with session and user ID
       connectToRoom(sessionId, userId);
     }
-  }, [session, user, isConnected, sessionId, connectToRoom, devicePreferences]);
+  }, [session, user, isConnected, sessionId, connectToRoom]);
 
   // Ensure local video is attached after connection
   useEffect(() => {
     if (isConnected) {
-      setTimeout(() => {
-        ensureLocalVideoAttached();
-      }, 1000); // Give some time for tracks to be published
+      // Multiple attempts to ensure video is attached
+      const attempts = [1000, 2000, 3000]; // Try at 1s, 2s, and 3s intervals
+      
+      attempts.forEach((delay) => {
+        setTimeout(() => {
+          ensureLocalVideoAttached();
+        }, delay);
+      });
     }
   }, [isConnected, ensureLocalVideoAttached]);
 
   // Calculate total participant count (live participants + host)
   const totalParticipantCount = liveParticipantCount + 1;
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

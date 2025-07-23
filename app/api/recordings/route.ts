@@ -3,6 +3,7 @@ import { S3Client, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/utils/prisma";
+import { getCDNUrl, isCDNConfigured, getCDNHeaders } from "@/lib/cdn-config";
 
 const s3 = new S3Client({
   region: "auto",
@@ -102,6 +103,7 @@ export async function GET(req: NextRequest) {
           hostName: file.hostName,
           participantCount: file.participantCount,
           key: file.s3Key,
+          cdnUrl: isCDNConfigured() ? getCDNUrl(file.s3Key) : null,
           lastModified: data.LastModified,
           createdAt: file.createdAt,
           fileSize: data.ContentLength || 0,
@@ -115,7 +117,13 @@ export async function GET(req: NextRequest) {
 
     const recordings = (await Promise.all(recordingsPromises)).filter(Boolean);
 
-    return NextResponse.json({ recordings });
+    // Add CDN headers for caching
+    const headers = getCDNHeaders();
+    
+    return NextResponse.json({ 
+      recordings,
+      cdnEnabled: isCDNConfigured()
+    }, { headers });
 
   } catch (error) {
     console.error("Error fetching recordings:", error);

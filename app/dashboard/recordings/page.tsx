@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import DashboardLayout from "@/app/dashboard/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import RecordingVideoDialog from "@/components/RecordingVideoDialog";
 import {
   Card,
   CardContent,
@@ -24,6 +25,8 @@ import {
   Eye,
   RefreshCw,
   Search,
+  Trash2,
+  Zap,
 } from "lucide-react";
 
 interface Recording {
@@ -33,6 +36,7 @@ interface Recording {
   hostName: string;
   participantCount: number;
   key: string;
+  cdnUrl?: string | null;
   lastModified: string;
   createdAt: string;
   fileSize: number;
@@ -46,8 +50,12 @@ export default function RecordingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredRecordings, setFilteredRecordings] = useState<Recording[]>([]);
+  const [cdnEnabled, setCdnEnabled] = useState(false);
+  const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
+  const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -64,6 +72,27 @@ export default function RecordingsPage() {
     setFilteredRecordings(filtered);
   }, [recordings, searchTerm]);
 
+  // Auto-warm CDN cache for better performance on subsequent views
+  const warmCacheInBackground = async (recordings: Recording[]) => {
+    try {
+      if (!cdnEnabled) return; // Skip if CDN is not enabled
+      
+      const sessionIds = recordings.map(r => r.sessionId);
+      const response = await fetch('/api/cdn/warm-cache', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionIds }),
+      });
+      
+      if (response.ok) {
+        console.log('CDN cache warming initiated for', sessionIds.length, 'recordings');
+      }
+    } catch (error) {
+      // Silently fail - cache warming is not critical
+      console.debug('CDN cache warming failed:', error);
+    }
+  };
+
   const fetchRecordings = async () => {
     try {
       setLoading(true);
@@ -76,6 +105,13 @@ export default function RecordingsPage() {
 
       const data = await response.json();
       setRecordings(data.recordings || []);
+      setCdnEnabled(data.cdnEnabled || false);
+      
+      // Auto-warm CDN cache for better subsequent performance
+      if (data.cdnEnabled && data.recordings?.length > 0) {
+        // Don't await this - let it run in background
+        warmCacheInBackground(data.recordings);
+      }
     } catch (err) {
       console.error("Error fetching recordings:", err);
       setError(
@@ -126,37 +162,52 @@ export default function RecordingsPage() {
     try {
       setDownloadingId(sessionId);
       
-      // Use the streaming download endpoint that handles CORS
-      const response = await fetch(`/api/recordings/${sessionId}/download`);
+      // Find the recording to check if CDN URL is available
+      const recording = recordings.find(r => r.sessionId === sessionId);
       
-      if (!response.ok) {
-        throw new Error('Download failed');
-      }
-      
-      // Get the filename from the response headers or create one
-      const contentDisposition = response.headers.get('Content-Disposition');
-      let filename = `${sessionTitle || `recording-${sessionId}`}.mp4`;
-      
-      if (contentDisposition) {
-        const matches = contentDisposition.match(/filename="([^"]*)"/);
-        if (matches) {
-          filename = matches[1];
+      if (cdnEnabled && recording?.cdnUrl) {
+        // For CDN downloads, we can directly link to the CDN
+        // The API will redirect to the CDN URL with proper headers
+        window.location.href = `/api/recordings/${sessionId}/download`;
+      } else {
+        // Fallback: Use the streaming download endpoint
+        const response = await fetch(`/api/recordings/${sessionId}/download`);
+        
+        if (!response.ok) {
+          throw new Error('Download failed');
         }
+        
+        // Handle redirects (CDN case) or blob downloads (streaming case)
+        if (response.redirected) {
+          window.location.href = response.url;
+          return;
+        }
+        
+        // Get the filename from the response headers or create one
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `${sessionTitle || `recording-${sessionId}`}.mp4`;
+        
+        if (contentDisposition) {
+          const matches = contentDisposition.match(/filename="([^"]*)"/);
+          if (matches) {
+            filename = matches[1];
+          }
+        }
+        
+        // Create blob and download
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        
+        // Clean up
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
       }
-      
-      // Create blob and download
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      
-      // Clean up
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
       
     } catch (error) {
       console.error('Download failed:', error);
@@ -170,23 +221,57 @@ export default function RecordingsPage() {
     try {
       setViewingId(sessionId);
       
-      // Use the view-url endpoint for viewing (no download headers)
-      const urlResponse = await fetch(`/api/recordings/${sessionId}/view-url`);
-      
-      if (!urlResponse.ok) {
-        throw new Error('Failed to generate view URL');
+      // Find the recording data
+      const recording = recordings.find(r => r.sessionId === sessionId);
+      if (recording) {
+        setSelectedRecording(recording);
+        setIsVideoDialogOpen(true);
       }
-      
-      const { viewUrl } = await urlResponse.json();
-      
-      // Open in a new tab for viewing
-      window.open(viewUrl, '_blank', 'noopener,noreferrer');
       
     } catch (error) {
       console.error('View failed:', error);
       alert('Failed to open recording. Please try again.');
     } finally {
       setViewingId(null);
+    }
+  };
+
+  const deleteRecording = async (sessionId: string, sessionTitle: string) => {
+    // Confirm deletion
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete "${sessionTitle || `Session ${sessionId.slice(-8)}`}"?\n\n` +
+      `This will permanently delete:\n` +
+      `• The recording file from storage\n` +
+      `• All session data from the database\n` +
+      `• This action cannot be undone`
+    );
+
+    if (!confirmDelete) {
+      return;
+    }
+
+    try {
+      setDeletingId(sessionId);
+      
+      const response = await fetch(`/api/recordings/${sessionId}/delete`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete recording');
+      }
+      
+      // Remove the recording from the local state
+      setRecordings(prev => prev.filter(recording => recording.sessionId !== sessionId));
+      
+      alert('Recording deleted successfully!');
+      
+    } catch (error) {
+      console.error('Delete failed:', error);
+      alert(error instanceof Error ? error.message : 'Failed to delete recording. Please try again.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -214,8 +299,19 @@ export default function RecordingsPage() {
       <header className="bg-card border-b border-border px-6 py-4 mb-6 rounded-lg">
         <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
           <div>
-            <h1 className="text-2xl font-bold text-card-foreground">Recordings</h1>
-            <p className="text-muted-foreground">Manage your session recordings and downloads</p>
+            <div className="flex items-center space-x-3">
+              <h1 className="text-2xl font-bold text-card-foreground">Recordings</h1>
+              {cdnEnabled && (
+                <div className="flex items-center space-x-1 bg-green-500/10 text-green-600 px-3 py-1 rounded-full text-sm font-medium">
+                  <Zap className="w-4 h-4" />
+                  <span>CDN Enabled</span>
+                </div>
+              )}
+            </div>
+            <p className="text-muted-foreground">
+              Manage your session recordings and downloads
+              {cdnEnabled ? " • Optimized for global fast delivery" : ""}
+            </p>
           </div>
           <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
             <div className="relative">
@@ -324,8 +420,12 @@ export default function RecordingsPage() {
                   <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center">
                     <Play className="w-6 h-6 text-primary" />
                   </div>
-                  <div className="flex items-center space-x-1">
-                  </div>
+                  {cdnEnabled && recording.cdnUrl && (
+                    <div className="flex items-center space-x-1 bg-green-500/10 text-green-600 px-2 py-1 rounded-full text-xs font-medium">
+                      <Zap className="w-3 h-3" />
+                      <span>CDN</span>
+                    </div>
+                  )}
                 </div>
                 
                 <h4 className="font-semibold text-card-foreground mb-2 text-lg">
@@ -362,6 +462,9 @@ export default function RecordingsPage() {
                       <>
                         <Eye className="w-4 h-4 mr-2" />
                         View Recording
+                        {cdnEnabled && recording.cdnUrl && (
+                          <Zap className="w-3 h-3 ml-1 text-green-600" />
+                        )}
                       </>
                     )}
                   </Button>
@@ -381,6 +484,28 @@ export default function RecordingsPage() {
                       <>
                         <Download className="w-4 h-4 mr-2" />
                         Download
+                        {cdnEnabled && recording.cdnUrl && (
+                          <Zap className="w-3 h-3 ml-1 text-green-600" />
+                        )}
+                      </>
+                    )}
+                  </Button>
+
+                  <Button 
+                    className="w-full text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                    variant="outline"
+                    onClick={() => deleteRecording(recording.sessionId, recording.sessionTitle)}
+                    disabled={deletingId === recording.sessionId}
+                  >
+                    {deletingId === recording.sessionId ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
                       </>
                     )}
                   </Button>
@@ -391,6 +516,21 @@ export default function RecordingsPage() {
           </div>
         )}
       </div>
+
+      {/* Recording Video Dialog */}
+      {selectedRecording && (
+        <RecordingVideoDialog
+          isOpen={isVideoDialogOpen}
+          onClose={() => {
+            setIsVideoDialogOpen(false);
+            setSelectedRecording(null);
+          }}
+          sessionId={selectedRecording.sessionId}
+          sessionTitle={selectedRecording.sessionTitle}
+          cdnEnabled={cdnEnabled && !!selectedRecording.cdnUrl}
+          onDownload={() => downloadRecording(selectedRecording.sessionId, selectedRecording.sessionTitle)}
+        />
+      )}
     </DashboardLayout>
   );
 }

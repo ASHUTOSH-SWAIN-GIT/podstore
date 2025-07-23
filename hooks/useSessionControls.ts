@@ -50,10 +50,12 @@ export const useSessionControls = () => {
 
   // LiveKit event handlers
   const handleParticipantConnected = (participant: RemoteParticipant) => {
+    console.log('Participant connected:', participant.identity);
     setLiveParticipantCount((prev) => prev + 1);
   };
 
   const handleParticipantDisconnected = (participant: RemoteParticipant) => {
+    console.log('Participant disconnected:', participant.identity);
     setLiveParticipantCount((prev) => Math.max(0, prev - 1));
 
     // Remove the participant's video container
@@ -63,6 +65,7 @@ export const useSessionControls = () => {
       );
       if (participantDiv) {
         participantDiv.remove();
+        console.log('Removed participant div for:', participant.identity);
       }
     }
   };
@@ -72,6 +75,8 @@ export const useSessionControls = () => {
     publication: RemoteTrackPublication,
     participant: RemoteParticipant,
   ) => {
+    console.log('Remote track subscribed:', track.kind, participant.identity);
+    
     if (track.kind === Track.Kind.Video || track.kind === Track.Kind.Audio) {
       const element = track.attach();
       element.style.width = "100%";
@@ -100,6 +105,7 @@ export const useSessionControls = () => {
           participantDiv.appendChild(badge);
 
           remoteVideosRef.current.appendChild(participantDiv);
+          console.log('Created participant div for:', participant.identity);
         }
 
         // Add the media element (video or audio)
@@ -110,6 +116,7 @@ export const useSessionControls = () => {
             existingVideo.remove();
           }
           participantDiv.insertBefore(element, participantDiv.firstChild);
+          console.log('Attached remote video for:', participant.identity);
         }
       }
     }
@@ -136,6 +143,8 @@ export const useSessionControls = () => {
     publication: LocalTrackPublication,
     participant: LocalParticipant,
   ) => {
+    console.log('Local track published:', publication.kind, publication.trackSid);
+    
     if (publication.kind === Track.Kind.Video && publication.track) {
       const videoEl = publication.track.attach();
       videoEl.style.width = "100%";
@@ -147,6 +156,7 @@ export const useSessionControls = () => {
         // Clear any existing content and add the video element
         localVideoRef.current.innerHTML = "";
         localVideoRef.current.appendChild(videoEl);
+        console.log('Local video attached successfully');
       }
     }
   };
@@ -300,30 +310,37 @@ export const useSessionControls = () => {
       ).length;
       setLiveParticipantCount(existingParticipants);
 
-      // Enable camera and microphone
+      // Enable camera and microphone by default for joining users
       await room.localParticipant.setCameraEnabled(
-        !isVideoOff,
+        true, // Always enable camera when joining
         livekitConfig.videoOptions,
       );
       await room.localParticipant.setMicrophoneEnabled(
-        !isMuted,
+        true, // Always enable microphone when joining
         livekitConfig.audioOptions,
       );
 
-      // Manually attach any existing local video tracks
-      room.localParticipant.videoTrackPublications.forEach((publication) => {
-        if (publication.track && publication.kind === Track.Kind.Video) {
-          const videoEl = publication.track.attach();
-          videoEl.style.width = "100%";
-          videoEl.style.height = "100%";
-          videoEl.style.objectFit = "cover";
+      // Update local states to reflect enabled devices
+      setIsVideoOff(false);
+      setIsMuted(false);
 
-          if (localVideoRef.current) {
-            localVideoRef.current.innerHTML = "";
-            localVideoRef.current.appendChild(videoEl);
+      // Manually attach any existing local video tracks immediately
+      setTimeout(() => {
+        room.localParticipant.videoTrackPublications.forEach((publication) => {
+          if (publication.track && publication.kind === Track.Kind.Video) {
+            const videoEl = publication.track.attach();
+            videoEl.style.width = "100%";
+            videoEl.style.height = "100%";
+            videoEl.style.objectFit = "cover";
+            videoEl.style.borderRadius = "12px";
+
+            if (localVideoRef.current) {
+              localVideoRef.current.innerHTML = "";
+              localVideoRef.current.appendChild(videoEl);
+            }
           }
-        }
-      });
+        });
+      }, 500); // Small delay to ensure tracks are published
     } catch (error) {
       console.error("Failed to connect to room:", error);
     }
@@ -436,19 +453,44 @@ export const useSessionControls = () => {
 
   // Manual function to ensure local video is attached
   const ensureLocalVideoAttached = () => {
-    if (room && localVideoRef.current) {
+    if (room && localVideoRef.current && room.localParticipant) {
+      console.log('Attempting to attach local video...');
+      console.log('Video publications:', room.localParticipant.videoTrackPublications.size);
+      
       room.localParticipant.videoTrackPublications.forEach((publication) => {
+        console.log('Found video publication:', publication.trackSid, publication.track?.kind);
+        
         if (publication.track && publication.kind === Track.Kind.Video) {
-          const videoEl = publication.track.attach();
-          videoEl.style.width = "100%";
-          videoEl.style.height = "100%";
-          videoEl.style.objectFit = "cover";
-          videoEl.style.borderRadius = "12px";
+          try {
+            const videoEl = publication.track.attach();
+            videoEl.style.width = "100%";
+            videoEl.style.height = "100%";
+            videoEl.style.objectFit = "cover";
+            videoEl.style.borderRadius = "12px";
 
-          localVideoRef.current!.innerHTML = "";
-          localVideoRef.current!.appendChild(videoEl);
+            localVideoRef.current!.innerHTML = "";
+            localVideoRef.current!.appendChild(videoEl);
+            
+            console.log('Successfully attached local video element');
+          } catch (error) {
+            console.error('Error attaching local video:', error);
+          }
         }
       });
+      
+      // If no video tracks found, try to enable camera again
+      if (room.localParticipant.videoTrackPublications.size === 0) {
+        console.log('No video tracks found, attempting to enable camera...');
+        room.localParticipant.setCameraEnabled(true, livekitConfig.videoOptions)
+          .then(() => {
+            console.log('Camera enabled successfully');
+            // Try again after a short delay
+            setTimeout(() => ensureLocalVideoAttached(), 1000);
+          })
+          .catch((error) => {
+            console.error('Failed to enable camera:', error);
+          });
+      }
     }
   };
 
