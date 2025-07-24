@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
+import AuthGuard from "@/components/auth/AuthGuard";
 import DashboardLayout from "@/app/dashboard/components/dashboard-layout";
 import {
   Breadcrumb,
@@ -78,7 +79,8 @@ export default function CreateSessionPage() {
   };
 
   return (
-    <DashboardLayout>
+    <AuthGuard>
+      <DashboardLayout>
       <div className="flex items-center justify-center min-h-full">
         <div className="w-full max-w-2xl mx-auto">
           <Breadcrumb className="mb-6">
@@ -182,5 +184,6 @@ export default function CreateSessionPage() {
         </div>
       </div>
     </DashboardLayout>
+    </AuthGuard>
   );
 }

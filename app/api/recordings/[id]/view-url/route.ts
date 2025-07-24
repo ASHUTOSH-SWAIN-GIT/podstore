@@ -5,7 +5,6 @@ import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/utils/prisma";
-import { getStreamingUrl, isCDNConfigured, getCDNHeaders } from "@/lib/cdn-config";
 
 const s3 = new S3Client({
   region: "auto",
@@ -77,19 +76,7 @@ export async function GET(
     }
 
     try {
-      // If CDN is configured, use CDN URL for direct streaming
-      if (isCDNConfigured()) {
-        const cdnUrl = getStreamingUrl(mediaFile.s3Key);
-        const headers = getCDNHeaders();
-        
-        return NextResponse.json({ 
-          viewUrl: cdnUrl,
-          cdnEnabled: true,
-          expiresAt: null, // CDN URLs don't expire
-        }, { headers });
-      }
-
-      // Fallback: Generate a signed URL for viewing (without download headers)
+      // Generate a signed URL for viewing (without download headers)
       const viewCommand = new GetObjectCommand({
         Bucket: BUCKET,
         Key: mediaFile.s3Key,
@@ -99,11 +86,17 @@ export async function GET(
         expiresIn: 3600 // 1 hour
       });
 
+      // Headers to disable caching
+      const noCacheHeaders = {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      };
+
       return NextResponse.json({ 
         viewUrl,
-        cdnEnabled: false,
         expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour from now
-      });
+      }, { headers: noCacheHeaders });
 
     } catch (s3Error) {
       console.error(`Failed to generate view URL for: ${mediaFile.s3Key}`, s3Error);

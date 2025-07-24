@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useSessionData } from "@/hooks/useSessionData";
 import { useSessionControls } from "@/hooks/useSessionControls";
+import AuthGuard from "@/components/auth/AuthGuard";
 import { SessionHeader } from "@/components/session/SessionHeader";
 import { VideoArea } from "@/components/session/VideoArea";
 import { SessionControls } from "@/components/session/SessionControls";
@@ -148,7 +149,8 @@ export default function SessionPage() {
  
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <AuthGuard>
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
       <SessionHeader
         session={session}
         isRecording={isRecording}
@@ -181,6 +183,7 @@ export default function SessionPage() {
         toggleRecording={() => toggleRecording(sessionId, user?.id || user?.email || "anonymous")}
         handleEndSession={handleEndSession}
       />
-    </div>
+      </div>
+    </AuthGuard>
   );
 }

@@ -5,11 +5,13 @@ import {
   Play, 
   Video
 } from 'lucide-react'
+import AuthGuard from '@/components/auth/AuthGuard'
 import DashboardLayout from '@/app/dashboard/components/dashboard-layout'
 
 export default function Dashboard() {
   return (
-    <DashboardLayout>
+    <AuthGuard>
+      <DashboardLayout>
       {/* Header */}
       <header className="bg-card border-b border-border px-6 py-4 mb-6 rounded-lg">
         <div className="flex items-center justify-between">
@@ -97,6 +99,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-    </DashboardLayout>
+      </DashboardLayout>
+    </AuthGuard>
   )
 }

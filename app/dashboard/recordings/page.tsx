@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import AuthGuard from "@/components/auth/AuthGuard";
 import DashboardLayout from "@/app/dashboard/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,31 +73,13 @@ export default function RecordingsPage() {
     setFilteredRecordings(filtered);
   }, [recordings, searchTerm]);
 
-  // Auto-warm CDN cache for better performance on subsequent views
-  const warmCacheInBackground = async (recordings: Recording[]) => {
-    try {
-      if (!cdnEnabled) return; // Skip if CDN is not enabled
-      
-      const sessionIds = recordings.map(r => r.sessionId);
-      const response = await fetch('/api/cdn/warm-cache', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionIds }),
-      });
-      
-      if (response.ok) {
-        console.log('CDN cache warming initiated for', sessionIds.length, 'recordings');
-      }
-    } catch (error) {
-      // Silently fail - cache warming is not critical
-      console.debug('CDN cache warming failed:', error);
-    }
-  };
-
   const fetchRecordings = async () => {
     try {
       setLoading(true);
       setError(null);
+      
+      console.log(`[Recordings Frontend] Fetching recordings for user: ${user?.id} (${user?.email})`);
+      
       const response = await fetch("/api/recordings");
 
       if (!response.ok) {
@@ -104,14 +87,12 @@ export default function RecordingsPage() {
       }
 
       const data = await response.json();
+      console.log(`[Recordings Frontend] User: ${user?.id} (${user?.email})`);
+      console.log(`[Recordings Frontend] API Debug Info:`, data.debug);
+      console.log(`[Recordings Frontend] Received ${data.recordings?.length || 0} recordings:`, data.recordings);
       setRecordings(data.recordings || []);
-      setCdnEnabled(data.cdnEnabled || false);
+      setCdnEnabled(false); // CDN removed for now
       
-      // Auto-warm CDN cache for better subsequent performance
-      if (data.cdnEnabled && data.recordings?.length > 0) {
-        // Don't await this - let it run in background
-        warmCacheInBackground(data.recordings);
-      }
     } catch (err) {
       console.error("Error fetching recordings:", err);
       setError(
@@ -294,7 +275,8 @@ export default function RecordingsPage() {
   }
 
   return (
-    <DashboardLayout>
+    <AuthGuard>
+      <DashboardLayout>
       {/* Header */}
       <header className="bg-card border-b border-border px-6 py-4 mb-6 rounded-lg">
         <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
@@ -532,5 +514,6 @@ export default function RecordingsPage() {
         />
       )}
     </DashboardLayout>
+    </AuthGuard>
   );
 }
