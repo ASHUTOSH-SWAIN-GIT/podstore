@@ -78,14 +78,12 @@ export default function SessionPage() {
   // Ensure local video is attached after connection
   useEffect(() => {
     if (isConnected) {
-      // Multiple attempts to ensure video is attached
-      const attempts = [1000, 2000, 3000]; // Try at 1s, 2s, and 3s intervals
-      
-      attempts.forEach((delay) => {
-        setTimeout(() => {
-          ensureLocalVideoAttached();
-        }, delay);
-      });
+      // Single attempt after a reasonable delay to let tracks be published
+      const timeoutId = setTimeout(() => {
+        ensureLocalVideoAttached();
+      }, 1500); // One attempt after 1.5 seconds
+
+      return () => clearTimeout(timeoutId);
     }
   }, [isConnected, ensureLocalVideoAttached]);
 
@@ -181,7 +179,7 @@ export default function SessionPage() {
         toggleMute={toggleMute}
         toggleVideo={toggleVideo}
         toggleRecording={() => toggleRecording(sessionId, user?.id || user?.email || "anonymous")}
-        handleEndSession={handleEndSession}
+        handleEndSession={() => handleEndSession(sessionId, user?.id || user?.email || "anonymous")}
       />
       </div>
     </AuthGuard>

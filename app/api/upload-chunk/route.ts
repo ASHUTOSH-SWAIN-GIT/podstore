@@ -147,15 +147,52 @@ export async function POST(req: NextRequest) {
 
     console.log(`[B2-UPLOAD] Chunk ${chunkIndex} successfully uploaded to B2 as ${b2FileName}`);
 
-    // 4. Save metadata for the uploaded chunk to your database
-    await prisma.recordingChunk.create({
-      data: {
+    // 4. Check for duplicate chunks before saving
+    const existingChunk = await prisma.recordingChunk.findFirst({
+      where: {
         sessionId,
-        participantId: actualParticipantId, // Use the actual participation ID
+        participantId: actualParticipantId,
         chunkIndex,
-        storagePath: b2FileName, // Store the B2 file name/key
       },
     });
+    
+    if (existingChunk) {
+      console.log(`[B2-UPLOAD] Chunk ${chunkIndex} already exists for session ${sessionId}, skipping database save`);
+      // Don't create duplicate, but continue with the flow
+    } else {
+      // Save metadata for the uploaded chunk to your database with error handling
+      let chunkSaved = false;
+      let saveAttempts = 0;
+      const maxSaveAttempts = 3;
+      
+      while (!chunkSaved && saveAttempts < maxSaveAttempts) {
+        try {
+          await prisma.recordingChunk.create({
+            data: {
+              sessionId,
+              participantId: actualParticipantId,
+              chunkIndex,
+              storagePath: b2FileName,
+            },
+          });
+          chunkSaved = true;
+          console.log(`[B2-UPLOAD] Chunk ${chunkIndex} metadata saved to database`);
+        } catch (dbError) {
+          saveAttempts++;
+          console.error(`[B2-UPLOAD] Failed to save chunk ${chunkIndex} metadata (attempt ${saveAttempts}/${maxSaveAttempts}):`, dbError);
+          
+          if (saveAttempts >= maxSaveAttempts) {
+            console.error(`[B2-UPLOAD] CRITICAL: Failed to save chunk ${chunkIndex} metadata after ${maxSaveAttempts} attempts`);
+            return NextResponse.json({ 
+              error: `Failed to save chunk ${chunkIndex} metadata to database` 
+            }, { status: 500 });
+          }
+          
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 1000 * saveAttempts));
+        }
+      }
+    }
 
     // --- Job Creation on Final Chunk ---
     if (isFinal) {
@@ -164,8 +201,10 @@ export async function POST(req: NextRequest) {
       // Wait for concurrent uploads to complete and verify all chunks
       let allChunks;
       let attempt = 0;
-      const maxAttempts = 8; // Increased from 5 to 8
-      const delayMs = 3000; // Increased from 2000ms to 3000ms
+      const maxAttempts = 15; // Increased to handle longer race conditions
+      const delayMs = 1500; // Slightly reduced for more frequent checks
+      let expectedChunkCount = 0;
+      let currentIndexes = [];
       
       do {
         if (attempt > 0) {
@@ -182,52 +221,106 @@ export async function POST(req: NextRequest) {
         console.log(`[B2-UPLOAD] Attempt ${attempt + 1}: Found ${allChunks.length} chunks for session ${sessionId}`);
         
         // Show which chunks we currently have
-        const currentIndexes = allChunks.map(c => c.chunkIndex).sort((a, b) => a - b);
+        currentIndexes = allChunks.map(c => c.chunkIndex).sort((a, b) => a - b);
         console.log(`[B2-UPLOAD] Current chunks: [${currentIndexes.join(', ')}]`);
+        
+        // Determine the expected chunk range dynamically
+        const minChunkIndex = currentIndexes.length > 0 ? Math.min(...currentIndexes) : 1;
+        const maxChunkIndex = chunkIndex; // Final chunk index
+        expectedChunkCount = maxChunkIndex - minChunkIndex + 1;
+        
+        console.log(`[B2-UPLOAD] Expected chunk range: ${minChunkIndex} to ${maxChunkIndex} (${expectedChunkCount} chunks)`);
+        
+        // Check if we have a complete sequence from minChunkIndex to chunkIndex (final chunk)
+        const hasCompleteSequence = currentIndexes.length === expectedChunkCount &&
+          currentIndexes[0] === minChunkIndex && 
+          currentIndexes[currentIndexes.length - 1] === chunkIndex;
+        
+        if (hasCompleteSequence) {
+          console.log(`[B2-UPLOAD] Complete sequence detected: ${minChunkIndex} to ${chunkIndex}`);
+          break;
+        }
+        
+        // Check for missing chunks in the expected sequence
+        const missingChunks = [];
+        for (let i = minChunkIndex; i <= chunkIndex; i++) {
+          if (!currentIndexes.includes(i)) {
+            missingChunks.push(i);
+          }
+        }
+        
+        if (missingChunks.length > 0) {
+          console.log(`[B2-UPLOAD] Missing chunks: [${missingChunks.join(', ')}] - will retry`);
+        }
         
         attempt++;
         
-        // Continue if we have less than 3 chunks (most recordings should have multiple chunks)
-        // or if we're still within retry attempts
-      } while (allChunks.length < 3 && attempt < maxAttempts);
+        // Continue if we don't have the expected chunk count or sequence is incomplete
+      } while (allChunks.length < expectedChunkCount && attempt < maxAttempts);
+      
+      // Final safety check - get the latest chunks one more time
+      console.log(`[B2-UPLOAD] Performing final chunk verification...`);
+      allChunks = await prisma.recordingChunk.findMany({
+        where: { sessionId },
+        orderBy: { chunkIndex: 'asc' },
+      });
       
       console.log(`[B2-UPLOAD] Final verification: Found ${allChunks.length} chunks for session ${sessionId}:`);
       allChunks.forEach((chunk) => {
         console.log(`  - Chunk ${chunk.chunkIndex}: ${chunk.storagePath}`);
       });
       
-      // Verify chunk sequence integrity
+      // Verify chunk sequence integrity with improved logic
       const chunkIndexes = allChunks.map(c => c.chunkIndex).sort((a, b) => a - b);
-      let hasGaps = false;
+      const missingChunks = [];
+      const duplicateChunks = [];
       
-      // Check for gaps in sequence (starting from the lowest index)
-      const minIndex = Math.min(...chunkIndexes);
-      const maxIndex = Math.max(...chunkIndexes);
+      // Determine the actual chunk range from the data
+      const minChunkIndex = chunkIndexes.length > 0 ? chunkIndexes[0] : 1;
+      const maxChunkIndex = chunkIndex; // Final chunk index
       
-      for (let i = minIndex; i <= maxIndex; i++) {
-        if (!chunkIndexes.includes(i)) {
-          console.warn(`[B2-UPLOAD] WARNING: Missing chunk ${i} in sequence`);
-          hasGaps = true;
+      console.log(`[B2-UPLOAD] Verifying chunk sequence from ${minChunkIndex} to ${maxChunkIndex}`);
+      
+      // Check for complete sequence from minChunkIndex to final chunk index
+      for (let i = minChunkIndex; i <= maxChunkIndex; i++) {
+        const chunksWithIndex = allChunks.filter(c => c.chunkIndex === i);
+        if (chunksWithIndex.length === 0) {
+          missingChunks.push(i);
+        } else if (chunksWithIndex.length > 1) {
+          duplicateChunks.push(i);
         }
       }
       
-      if (hasGaps) {
-        console.warn(`[B2-UPLOAD] Proceeding with stitching despite gaps in chunk sequence`);
+      // Report any issues
+      if (missingChunks.length > 0) {
+        console.error(`[B2-UPLOAD] CRITICAL: Missing chunks [${missingChunks.join(', ')}] for session ${sessionId}`);
+        console.error(`[B2-UPLOAD] Expected chunks ${minChunkIndex} to ${maxChunkIndex}, but found: [${chunkIndexes.join(', ')}]`);
+        
+        // Return error for missing chunks instead of proceeding
+        return NextResponse.json({
+          error: `Missing chunks: ${missingChunks.join(', ')}. Cannot process incomplete recording.`,
+          missingChunks,
+          foundChunks: chunkIndexes,
+          expectedRange: `${minChunkIndex}-${maxChunkIndex}`
+        }, { status: 422 }); // 422 Unprocessable Entity
       }
       
-      console.log(`[B2-UPLOAD] All chunks verified. Adding session ${sessionId} to stitching queue with ${allChunks.length} chunks.`);
+      if (duplicateChunks.length > 0) {
+        console.warn(`[B2-UPLOAD] WARNING: Duplicate chunks [${duplicateChunks.join(', ')}] for session ${sessionId}`);
+        // We can proceed with duplicates, just log the warning
+      }
       
-      // The job only needs the sessionId. The worker will fetch chunk details from the DB.
-      await stitchingQueue.add("stitch-session-files", {
-        sessionId,
-        userId: userId || participantId, // Pass userId if needed downstream
-        totalChunks: allChunks.length, // Include total chunk count for verification
-      });
+      console.log(`[B2-UPLOAD] ✅ All chunks verified. Complete sequence from ${minChunkIndex} to ${maxChunkIndex}.`);
+      
+      console.log(`[B2-UPLOAD] All chunks verified. Job will be processed when session ends.`);
+      
+      // Note: Workers will be started automatically when the session is ended via /api/sessions/[id]/end
+      // This ensures processing only begins after all participants have finished uploading
 
       return NextResponse.json(
         { 
           success: true, 
-          message: `Recording complete with ${allChunks.length} chunks, processing started.`,
+          message: `Recording complete with ${allChunks.length} chunks. Processing will start when session ends.`,
           totalChunks: allChunks.length
         },
         { status: 202 } // 202 Accepted
