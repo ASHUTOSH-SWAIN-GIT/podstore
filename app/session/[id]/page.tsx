@@ -167,7 +167,7 @@ export default function SessionPage() {
           liveParticipantCount={liveParticipantCount}
           isVideoOff={isVideoOff}
           isMuted={isMuted}
-          inviteLink={`${window?.location?.origin}/session/${sessionId}` || ""}
+          inviteLink={`${window?.location?.origin}/join/${session?.joinToken}` || ""}
         />
       </div>
 

@@ -152,13 +152,36 @@ export default function SetupPage() {
 
   const handleJoinSession = async () => {
     if (!session || !user) return;
+    
+    // Add user as participant to the session
+    try {
+      const response = await fetch(`/api/sessions/${session.id}/participants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: user.id,
+          role: session.hostId === user.id ? 'HOST' : 'GUEST' 
+        }),
+      });
+
+      if (!response.ok) {
+        console.warn('Failed to add participant to session, but proceeding to join');
+      }
+    } catch (error) {
+      console.warn('Error adding participant:', error);
+    }
+
+    // Stop the preview stream
     mediaStream?.getTracks().forEach(track => track.stop());
+    
+    // Build session URL with device preferences
     const params = new URLSearchParams({
         audioDevice: selectedAudio,
         videoDevice: selectedVideo,
         cameraEnabled: String(isCameraOn),
         micEnabled: String(isMicOn),
     });
+    
     router.push(`/session/${session.id}?${params.toString()}`);
   };
 
@@ -195,7 +218,9 @@ export default function SetupPage() {
             <div className="w-full max-w-sm space-y-4">
               <div className="bg-[#2C2C2C] rounded-md p-3 flex items-center justify-between">
                 <span className="font-medium">{user?.user_metadata?.name || user?.email}</span>
-                <span className="text-xs bg-[#444444] text-gray-300 px-2 py-1 rounded">Host</span>
+                <span className="text-xs bg-[#444444] text-gray-300 px-2 py-1 rounded">
+                  {session.hostId === user?.id ? 'Host' : 'Guest'}
+                </span>
               </div>
 
               <div className="flex space-x-2">
@@ -236,7 +261,7 @@ export default function SetupPage() {
 
 
               <p className="text-xs text-gray-500 text-center">
-                You are joining as a host. <span className="text-[#8A63D2] cursor-pointer hover:underline">Join as a producer</span>
+                You are joining as {session.hostId === user?.id ? 'the host' : 'a guest'}.
               </p>
             </div>
           </div>

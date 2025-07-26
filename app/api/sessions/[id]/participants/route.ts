@@ -39,11 +39,25 @@ export async function POST(
   }
 
   try {
+    // Check if participant already exists
+    const existingParticipation = await prisma.participation.findFirst({
+      where: {
+        userId,
+        sessionId,
+      },
+    });
+
+    if (existingParticipation) {
+      // Return existing participation instead of creating duplicate
+      return NextResponse.json(existingParticipation, { status: 200 });
+    }
+
     const participation = await prisma.participation.create({
       data: {
         userId,
         sessionId,
         role: role || "GUEST",
+        joinedAt: new Date(),
       },
     });
 

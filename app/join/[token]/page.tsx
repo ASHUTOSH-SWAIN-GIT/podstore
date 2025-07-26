@@ -62,15 +62,15 @@ export default function JoinPage() {
 
     setJoining(true);
     try {
-      // If user is not signed in, redirect to auth first
+      // If user is not signed in, redirect to auth with return URL
       if (!user) {
         const authUrl = new URL("/auth", window.location.origin);
-        authUrl.searchParams.set("returnTo", `/setup/${token}`);
+        authUrl.searchParams.set("redirect", `/join/${token}`); // Return to join page after login
         router.push(authUrl.toString());
         return;
       }
 
-      // Redirect to setup page for device configuration
+      // User is logged in, proceed to device setup
       router.push(`/setup/${token}`);
     } catch (err) {
       setError("Failed to access session setup");
@@ -161,14 +161,20 @@ export default function JoinPage() {
 
             {user ? (
               <div className="bg-green-50 p-4 border border-green-200">
-                <p className="text-green-800 text-sm">
+                <p className="text-green-800 text-sm mb-2">
                   ✓ Signed in as {user.email}
+                </p>
+                <p className="text-green-700 text-xs">
+                  Ready to join! Click continue to configure your camera and microphone.
                 </p>
               </div>
             ) : (
               <div className="bg-blue-50 p-4 border border-blue-200">
-                <p className="text-blue-800 text-sm">
-                  You'll be redirected to sign in before joining
+                <p className="text-blue-800 text-sm mb-2">
+                  🔐 Authentication required
+                </p>
+                <p className="text-blue-700 text-xs">
+                  You'll be redirected to sign in before joining the session.
                 </p>
               </div>
             )}
