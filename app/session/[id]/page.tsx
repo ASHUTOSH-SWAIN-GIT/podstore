@@ -1,6 +1,6 @@
 "use client";
 
-import React, { RefObject, useEffect, useState } from "react";
+import React, { RefObject, useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useSessionData } from "@/hooks/useSessionData";
@@ -24,6 +24,7 @@ export default function SessionPage() {
     isMuted,
     isVideoOff,
     isConnected,
+    isConnecting,
     localVideoRef,
     remoteVideosRef,
     liveParticipantCount,
@@ -36,6 +37,9 @@ export default function SessionPage() {
     connectToRoom,
     ensureLocalVideoAttached,
   } = useSessionControls();
+
+  // Connection attempt tracker to prevent multiple calls
+  const connectionAttemptedRef = useRef<boolean>(false);
 
   // Redirect unauthenticated users to login via join flow
   useEffect(() => {
@@ -67,13 +71,25 @@ export default function SessionPage() {
 
   // Auto-connect to LiveKit room when session and user are ready
   useEffect(() => {
-    if (session && user && !isConnected) {
+    if (session && user && !isConnected && !isConnecting && !connectionAttemptedRef.current) {
       const userId = user.id || user.email || "anonymous";
+      console.log('Attempting to connect to room:', sessionId, 'for user:', userId);
+      
+      connectionAttemptedRef.current = true;
 
-      // Connect to room with session and user ID
-      connectToRoom(sessionId, userId);
+      // Add a small delay to ensure all state is settled
+      const timeoutId = setTimeout(() => {
+        connectToRoom(sessionId, userId);
+      }, 500);
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [session, user, isConnected, sessionId, connectToRoom]);
+
+    // Reset the connection attempted flag if we're disconnected
+    if (!isConnected && !isConnecting) {
+      connectionAttemptedRef.current = false;
+    }
+  }, [session, user, isConnected, isConnecting, sessionId, connectToRoom]);
 
   // Ensure local video is attached after connection
   useEffect(() => {
@@ -146,6 +162,9 @@ export default function SessionPage() {
 
  
 
+  // Check if current user is the host
+  const isHost = session?.hostId === (user?.id || user?.email);
+
   return (
     <AuthGuard>
       <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -176,6 +195,7 @@ export default function SessionPage() {
         isVideoOff={isVideoOff}
         isRecording={isRecording}
         recordingError={recordingError}
+        isHost={isHost}
         toggleMute={toggleMute}
         toggleVideo={toggleVideo}
         toggleRecording={() => toggleRecording(sessionId, user?.id || user?.email || "anonymous")}

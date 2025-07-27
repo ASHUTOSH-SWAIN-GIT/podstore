@@ -7,6 +7,7 @@ interface SessionControlsProps {
   isVideoOff: boolean;
   isRecording: boolean;
   recordingError: string | null;
+  isHost?: boolean;
   toggleMute: () => void;
   toggleVideo: () => void;
   toggleRecording: () => void;
@@ -18,6 +19,7 @@ export const SessionControls: React.FC<SessionControlsProps> = ({
   isVideoOff,
   isRecording,
   recordingError,
+  isHost = false,
   toggleMute,
   toggleVideo,
   toggleRecording,
@@ -71,6 +73,7 @@ export const SessionControls: React.FC<SessionControlsProps> = ({
           variant="destructive"
           size="lg"
           className="rounded-full h-12 w-12 p-0"
+          title={isHost ? "End Session (Will start processing workers)" : "Leave Session"}
         >
           <PhoneOff className="h-5 w-5" />
         </Button>

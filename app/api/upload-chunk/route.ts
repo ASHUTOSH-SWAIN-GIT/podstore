@@ -69,6 +69,19 @@ export async function POST(req: NextRequest) {
     });
 
     if (!existingParticipation) {
+      // First, verify that the user exists
+      const userExists = await prisma.user.findUnique({
+        where: { id: participantId }
+      });
+      
+      if (!userExists) {
+        console.error(`[B2-UPLOAD] User ${participantId} does not exist in database`);
+        return NextResponse.json(
+          { error: `User ${participantId} not found` },
+          { status: 400 }
+        );
+      }
+      
       // Create a participation record for this user in this session
       console.log(`[B2-UPLOAD] Creating participation record for user ${participantId} in session ${sessionId}`);
       
@@ -76,7 +89,7 @@ export async function POST(req: NextRequest) {
         data: {
           userId: participantId, // Use the participantId as userId
           sessionId,
-          role: "HOST", // Default to HOST role for now
+          role: "GUEST", // Default to GUEST role for recordings
         },
       });
       

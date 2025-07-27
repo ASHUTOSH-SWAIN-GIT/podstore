@@ -32,7 +32,7 @@ export async function POST(
       );
     }
 
-    // Check if user is the host or a participant
+    // Check if user is the host or a participant  
     const isHost = session.hostId === userId;
     const isParticipant = session.participants.some(p => p.userId === userId);
 
@@ -43,6 +43,8 @@ export async function POST(
       );
     }
 
+    console.log(`[SESSION-END] User ${userId} is ${isHost ? 'HOST' : 'PARTICIPANT'}`);
+
     // Only allow ending if session is currently LIVE or SCHEDULED
     if (session.status === "ENDED" || session.status === "PROCESSING" || session.status === "COMPLETE") {
       return NextResponse.json(
@@ -50,6 +52,44 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    // If a participant is leaving (not the host), just remove them from the session
+    if (!isHost) {
+      console.log(`[SESSION-END] Participant ${userId} leaving session ${sessionId}`);
+      
+      // Update participant's leftAt timestamp instead of deleting
+      await prisma.participation.updateMany({
+        where: { 
+          sessionId,
+          userId,
+          leftAt: null // Only update if they haven't left already
+        },
+        data: {
+          leftAt: new Date()
+        }
+      });
+
+      // Count remaining active participants
+      const remainingParticipants = await prisma.participation.count({
+        where: { 
+          sessionId,
+          leftAt: null // Only count participants who haven't left
+        }
+      });
+
+      console.log(`[SESSION-END] Participant left. ${remainingParticipants} participants remaining.`);
+
+      return NextResponse.json({
+        success: true,
+        message: "Left session successfully.",
+        isHost: false,
+        remainingParticipants,
+        sessionStatus: session.status
+      }, { status: 200 });
+    }
+
+    // HOST is ending the session - proceed with full session termination
+    console.log(`[SESSION-END] HOST ${userId} is ending session ${sessionId}`);
 
     // Update session status to ENDED
     const updatedSession = await prisma.session.update({
@@ -60,7 +100,7 @@ export async function POST(
       },
     });
 
-    console.log(`[SESSION-END] Session ${sessionId} status updated to ENDED`);
+    console.log(`[SESSION-END] Session ${sessionId} status updated to ENDED by HOST`);
 
     // Check if there are any recording chunks for this session
     const recordingChunks = await prisma.recordingChunk.findMany({
@@ -69,7 +109,7 @@ export async function POST(
     });
 
     if (recordingChunks.length > 0) {
-      console.log(`[SESSION-END] Found ${recordingChunks.length} recording chunks. Starting processing...`);
+      console.log(`[SESSION-END] HOST ended session with ${recordingChunks.length} recording chunks. Starting processing...`);
       
       // Update session status to PROCESSING
       await prisma.session.update({
@@ -84,13 +124,13 @@ export async function POST(
         totalChunks: recordingChunks.length,
       });
 
-      console.log(`[SESSION-END] Job added to stitching queue. Ensuring workers are running...`);
+      console.log(`[SESSION-END] Job added to stitching queue. Starting workers (HOST action only)...`);
       
-      // Automatically start workers if they're not running
+      // Automatically start workers if they're not running (ONLY for host-ended sessions)
       try {
         const workersStarted = await workerManager.ensureWorkersRunning();
         if (workersStarted) {
-          console.log(`[SESSION-END] ✅ Workers are running and ready to process jobs`);
+          console.log(`[SESSION-END] ✅ Workers started by HOST and ready to process jobs`);
         } else {
           console.warn(`[SESSION-END] ⚠️ Some workers failed to start, but job is queued`);
         }
@@ -101,20 +141,22 @@ export async function POST(
 
       return NextResponse.json({
         success: true,
-        message: `Session ended. Processing ${recordingChunks.length} chunks.`,
+        message: `Session ended by HOST. Processing ${recordingChunks.length} chunks.`,
         session: updatedSession,
         processing: true,
+        isHost: true,
         totalChunks: recordingChunks.length,
         workersStatus: workerManager.getWorkersStatus()
       }, { status: 200 });
     } else {
-      console.log(`[SESSION-END] No recording chunks found. Session ended without processing.`);
+      console.log(`[SESSION-END] HOST ended session with no recording chunks.`);
       
       return NextResponse.json({
         success: true,
-        message: "Session ended successfully.",
+        message: "Session ended successfully by HOST.",
         session: updatedSession,
         processing: false,
+        isHost: true,
         totalChunks: 0
       }, { status: 200 });
     }

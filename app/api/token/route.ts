@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       process.env.LIVEKIT_API_SECRET!,
       {
         identity,
-        ttl: "10m",
+        ttl: "1h", // Extended to 1 hour to prevent disconnections
       },
     );
 

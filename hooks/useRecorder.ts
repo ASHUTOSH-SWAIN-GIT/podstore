@@ -5,12 +5,14 @@ export const useRecorder = ({
   sessionId,
   userId,
 }: {
+  
   sessionId: string;
   userId: string;
 }) => {
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const isStoppingRef = useRef<boolean>(false);
+  const chunkIndexRef = useRef<number>(0); // Add chunk index tracking
   const [isRecording, setIsRecording] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,21 +31,29 @@ export const useRecorder = ({
     }
     mediaRecorder.current = null;
     isStoppingRef.current = false;
+    chunkIndexRef.current = 0; // Reset chunk index
     setIsRecording(false);
   }, []);
 
   const handleDataAvailable = useCallback(async (event: BlobEvent) => {
     if (event.data.size > 0) {
       const isFinalChunk = isStoppingRef.current;
-      console.log(`Chunk received. Final: ${isFinalChunk}, Size: ${event.data.size} bytes`);
+      chunkIndexRef.current++; // Increment chunk index
+      console.log(`Chunk received. Index: ${chunkIndexRef.current}, Final: ${isFinalChunk}, Size: ${event.data.size} bytes`);
       
-      const file = new File([event.data], `chunk-${Date.now()}.webm`, { type: "video/webm" });
+      const file = new File([event.data], `chunk-${chunkIndexRef.current}-${Date.now()}.webm`, { type: "video/webm" });
       
       try {
-        // --- THIS IS THE ONLY CHANGE ---
-        // Pass the 'isFinal' flag to the upload function.
-        await UploadChunkToServer({ file, sessionId, userId, isFinal: isFinalChunk });
-        console.log(`Uploaded chunk: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+        // Pass all required parameters including participantId and chunkIndex
+        await UploadChunkToServer({ 
+          file, 
+          sessionId, 
+          participantId: userId, // Use userId as participantId
+          chunkIndex: chunkIndexRef.current,
+          userId, 
+          isFinal: isFinalChunk 
+        });
+        console.log(`Uploaded chunk ${chunkIndexRef.current}: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
       } catch (err) {
         console.error("Chunk upload failed:", err);
         setError("Failed to upload recording chunk. Please check connection.");
@@ -79,6 +89,7 @@ export const useRecorder = ({
     try {
       setError(null);
       isStoppingRef.current = false;
+      chunkIndexRef.current = 0; // Reset chunk index when starting
       
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,

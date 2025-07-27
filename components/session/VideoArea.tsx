@@ -135,13 +135,10 @@ export const VideoArea: React.FC<VideoAreaProps> = ({
   inviteLink,
 }) => {
   return (
-    // Updated to take full width without sidebar
     <div className="w-full flex flex-row space-x-6 p-6 h-full overflow-hidden bg-background">
-      
       {/* Left Panel: Host Video */}
-      <div className="w-1/2 h-full bg-black rounded-xl border border-border overflow-hidden relative group shadow-lg flex-shrink-0">
+      <div className="w-2/3 h-full bg-black rounded-xl border border-border overflow-hidden relative group shadow-lg flex-shrink-0">
         <div ref={localVideoRef} className="w-full h-full" />
-
         {isVideoOff && (
           <div className="absolute inset-0 bg-secondary flex items-center justify-center">
             <div className="text-center space-y-4">
@@ -152,7 +149,6 @@ export const VideoArea: React.FC<VideoAreaProps> = ({
             </div>
           </div>
         )}
-
         <div className="absolute bottom-4 left-4">
           <Badge className="bg-black/70 text-white border-border backdrop-blur-sm">
             You (Host) {isMuted && <MicOff className="w-3 h-3 ml-1" />}
@@ -160,13 +156,15 @@ export const VideoArea: React.FC<VideoAreaProps> = ({
         </div>
       </div>
 
-      {/* Right Panel: Conditional - Shows InvitePanel or ParticipantGrid */}
-      <div className="w-1/2 h-full flex-1">
+      {/* Right Panel: Participants or Invite Panel */}
+      <div className="w-1/3 h-full flex flex-col">
         {liveParticipantCount > 0 ? (
-          <ParticipantGrid 
-            remoteVideosRef={remoteVideosRef} 
-            liveParticipantCount={liveParticipantCount} 
-          />
+          <div
+            ref={remoteVideosRef}
+            className="h-full w-full flex flex-col space-y-4"
+          >
+            {/* Participant videos will be injected here, stacking vertically */}
+          </div>
         ) : (
           <InvitePanel inviteLink={inviteLink} />
         )}

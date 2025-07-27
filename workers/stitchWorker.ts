@@ -163,11 +163,11 @@ const worker = new Worker("stitching-processing", async (job) => {
         validChunkPaths.push(filePath);
         
       } catch (readError) {
-        console.error(`[STITCH-WORKER] ERROR: Cannot read ${path.basename(filePath)}: ${readError.message} - skipping`);
+        console.error(`[STITCH-WORKER] ERROR: Cannot read ${path.basename(filePath)}: ${readError instanceof Error ? readError.message : String(readError)} - skipping`);
         continue; // Skip unreadable files
       }
     }
-    
+
     console.log(`[STITCH-WORKER] Valid chunks for stitching: ${validChunkPaths.length}/${localChunkPaths.length}`);
     
     if (validChunkPaths.length === 0) {
@@ -195,7 +195,7 @@ const worker = new Worker("stitching-processing", async (job) => {
     const hasFragments = chunkTypes.some(c => c.isWebMFragment);
     const hasCompleteWebM = chunkTypes.some(c => c.isCompleteWebM);
     
-    console.log(`[STITCH-WORKER] Chunk analysis:`);
+    console.log(`[STITCH-WORKER] Chunk analysis:  `);
     chunkTypes.forEach((chunk, i) => {
       const type = chunk.isCompleteWebM ? 'COMPLETE' : chunk.isWebMFragment ? 'FRAGMENT' : 'UNKNOWN';
       console.log(`  ${path.basename(chunk.filePath)}: ${type} (${chunk.size} bytes)`);
